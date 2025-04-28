@@ -1,7 +1,7 @@
 // /media/thithilab/ボリューム1/ACR/ACR-app/components/ErrorBoundary.test.tsx
 import React from 'react'; 
 import { render, screen, fireEvent } from '@testing-library/react-native';
-import { View, Text } from 'react-native';
+import { Text } from 'react-native';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper'; 
 import * as Sentry from '@sentry/react-native';
 import { ErrorBoundary } from './ErrorBoundary'; 

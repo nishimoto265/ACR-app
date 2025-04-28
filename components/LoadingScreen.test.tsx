@@ -4,16 +4,15 @@ import { render, screen } from '@testing-library/react-native'; // React Native 
 // MD3LightTheme (または使用バージョンに合わせて MD2LightTheme) をインポート
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import LoadingScreen from './LoadingScreen'; // テスト対象のコンポーネントをインポート
+import { Text } from 'react-native'; // Import Text here
 
 // react-native-paper の ActivityIndicator をモック
 jest.mock('react-native-paper', () => {
   const ActualPaper = jest.requireActual('react-native-paper'); // 元のモジュールを取得
-  // Textコンポーネントをファクトリー関数内で require する
-  const MockText = require('react-native').Text;
   return {
     ...ActualPaper, // PaperProviderなど、他のエクスポートはそのまま使う
-    // requireしたTextコンポーネントを使用
-    ActivityIndicator: (props: any) => <MockText testID="mock-activity-indicator">MockIndicator</MockText>,
+    // Remove unused props and any type
+    ActivityIndicator: () => <Text testID="mock-activity-indicator">MockIndicator</Text>,
   };
 });
 
