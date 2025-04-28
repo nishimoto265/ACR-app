@@ -1,10 +1,10 @@
 // /media/thithilab/ボリューム1/ACR/ACR-app/components/LoadingScreen.test.tsx
 import React from 'react';
 import { render, screen } from '@testing-library/react-native'; // React Native Testing Libraryから必要な関数をインポート
-import { Text } from 'react-native'; // Import Text from react-native
+import LoadingScreen from './LoadingScreen'; // テスト対象のコンポーネントをインポート
+
 // MD3LightTheme (または使用バージョンに合わせて MD2LightTheme) をインポート
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
-import LoadingScreen from './LoadingScreen'; // テスト対象のコンポーネントをインポート
 
 // react-native-paper の ActivityIndicator をモック
 jest.mock('react-native-paper', () => {
