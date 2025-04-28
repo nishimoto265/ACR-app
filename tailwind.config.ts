@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
     darkMode: ["class"],
@@ -62,6 +63,9 @@ const config: Config = {
   				ring: 'hsl(var(--sidebar-ring))'
   			}
   		},
+  		fontFamily: {
+  			sans: ["var(--font-sans)"],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -91,6 +95,7 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
-};
-export default config;
+  plugins: [tailwindcssAnimate],
+} satisfies Config
+
+export default config

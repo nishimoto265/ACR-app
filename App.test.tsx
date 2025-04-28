@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import App from './App';
+import { View } from 'react-native';
 
 // Mock RecoilRoot
 jest.mock('recoil', () => ({
@@ -52,8 +53,9 @@ jest.mock('./components/ErrorBoundary', () => ({
 
 // RootNavigatorをモック化 (Simple functional component mock)
 jest.mock('./navigation/RootNavigator', () => {
-  const View = require('react-native').View;
-  return () => <View testID="mock-root-navigator" />;
+  const MockRootNavigator = () => <View testID="mock-root-navigator" />;
+  MockRootNavigator.displayName = 'MockRootNavigator';
+  return MockRootNavigator;
 });
 
 // Mock @react-navigation/native

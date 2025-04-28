@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { View, ScrollView, StyleSheet } from "react-native"
 import { Text, Card, Divider, ActivityIndicator, Button, IconButton } from "react-native-paper"
-import { Audio } from "expo-av"
+import { Audio, AVPlaybackStatus } from "expo-av"
 import type { NativeStackScreenProps } from "@react-navigation/native-stack"
 import type { RecordingsStackParamList } from "../../navigation/MainNavigator"
 import { useRecording } from "../../hooks/useRecordings"
@@ -23,7 +23,7 @@ export default function RecordingDetailScreen({ route }: Props) {
   const [audioError, setAudioError] = useState<string | null>(null)
 
   // 音声ファイルの読み込み
-  const loadAudio = async () => {
+  const loadAudio = useCallback(async () => {
     if (!recording?.audioUrl) return
 
     try {
@@ -49,10 +49,10 @@ export default function RecordingDetailScreen({ route }: Props) {
     } finally {
       setIsLoadingAudio(false)
     }
-  }
+  }, [recording?.audioUrl, sound])
 
   // 再生状態の更新ハンドラ
-  const onPlaybackStatusUpdate = (status: Audio.PlaybackStatus) => {
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (!status.isLoaded) return
 
     setIsPlaying(status.isPlaying)
@@ -107,17 +107,13 @@ export default function RecordingDetailScreen({ route }: Props) {
 
   // コンポーネントのマウント時に音声をロード
   useEffect(() => {
-    if (recording?.audioUrl) {
-      loadAudio()
-    }
-
-    // クリーンアップ関数
+    loadAudio();
+    // Cleanup function to unload audio when component unmounts
     return () => {
-      if (sound) {
-        sound.unloadAsync()
-      }
-    }
-  }, [recording])
+      sound?.unloadAsync();
+    };
+    // Only run once on mount, or if loadAudio/sound changes (though they shouldn't typically)
+  }, [loadAudio, sound]);
 
   if (isLoading) {
     return (

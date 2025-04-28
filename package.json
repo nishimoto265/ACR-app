@@ -42,8 +42,6 @@
     "@react-native-async-storage/async-storage": "latest",
     "@react-navigation/bottom-tabs": "latest",
     "@react-navigation/native": "latest",
-    "@react-navigation/native-stack": "latest",
-    "@react-navigation/stack": "^7.2.10",
     "@sentry/react-native": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -84,6 +82,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@react-navigation/native-stack": "^7.3.10",
+    "@react-navigation/stack": "^7.2.10",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^12.4.5",
     "@types/jest": "^29.5.14",
