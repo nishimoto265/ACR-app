@@ -28,6 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRestart = () => {
+    console.log('Restart button clicked, resetting state...')
     this.setState({ hasError: false, error: null })
   }
 
@@ -37,7 +38,10 @@ export class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <Text style={styles.title}>エラーが発生しました</Text>
           <Text style={styles.message}>{this.state.error?.message || "アプリケーションで問題が発生しました。"}</Text>
-          <Button mode="contained" onPress={this.handleRestart} style={styles.button}>
+          <Button 
+            mode="contained" 
+            onPress={this.handleRestart} 
+            style={styles.button}>
             アプリを再起動
           </Button>
         </View>

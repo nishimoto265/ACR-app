@@ -75,6 +75,7 @@ export default function LoginScreen({ navigation }: Props) {
             keyboardType="email-address"
             style={styles.input}
             disabled={isLoading}
+            testID="email-input"
           />
 
           <TextInput
@@ -84,6 +85,7 @@ export default function LoginScreen({ navigation }: Props) {
             secureTextEntry={secureTextEntry}
             style={styles.input}
             disabled={isLoading}
+            testID="password-input"
             right={
               <TextInput.Icon
                 icon={secureTextEntry ? "eye" : "eye-off"}
