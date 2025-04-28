@@ -46,7 +46,9 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock ErrorBoundary to simply render children
-jest.mock('./components/ErrorBoundary', () => ({ children }: { children: React.ReactNode }) => <>{children}</>);
+jest.mock('./components/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 // RootNavigatorをモック化 (Simple functional component mock)
 jest.mock('./navigation/RootNavigator', () => {
