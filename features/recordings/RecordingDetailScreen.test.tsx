@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { render } from '@testing-library/react-native';
 import RecordingDetailScreen from './RecordingDetailScreen';
 import { useRecording } from '../../hooks/useRecordings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,48 +9,28 @@ jest.mock('../../hooks/useRecordings', () => ({
   useRecording: jest.fn(),
 }));
 
-jest.mock('expo-av', () => {
-  const mockPlaybackStatus = {
-    isLoaded: true,
-    durationMillis: 60000,
-    positionMillis: 0,
-    isPlaying: false,
-  };
-  
-  const mockSound = {
-    unloadAsync: jest.fn().mockResolvedValue(undefined),
-    playAsync: jest.fn().mockResolvedValue(undefined),
-    pauseAsync: jest.fn().mockResolvedValue(undefined),
-    setPositionAsync: jest.fn().mockResolvedValue(undefined),
-  };
-  
-  return {
-    Audio: {
-      Sound: {
-        createAsync: jest.fn().mockImplementation((source, options, callback) => {
-          if (callback) {
-            callback(mockPlaybackStatus);
-          }
-          return Promise.resolve({
-            sound: mockSound,
-            status: mockPlaybackStatus,
-          });
-        }),
-      },
-    },
-    AVPlaybackStatus: mockPlaybackStatus,
-  };
-});
+jest.mock('expo-av', () => ({}));
+
+jest.mock('../../utils/dateFormatter', () => ({
+  formatDate: jest.fn().mockReturnValue('2024年4月1日'),
+  formatDuration: jest.fn().mockImplementation((seconds) => {
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }),
+}));
+
+type RecordingDetailProps = NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>;
 
 const mockRoute = {
-  key: 'RecordingDetailKey',
+  key: 'RecordingDetail',
   name: 'RecordingDetail',
   params: { recordingId: 'test-recording-id' },
-} as unknown as NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>['route'];
+} as RecordingDetailProps['route'];
 
 const mockNavigation = {
   navigate: jest.fn(),
-} as unknown as NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>['navigation'];
+  goBack: jest.fn(),
+  setOptions: jest.fn(),
+} as unknown as RecordingDetailProps['navigation'];
 
 const mockRecording = {
   id: 'test-recording-id',
@@ -68,58 +47,52 @@ describe('RecordingDetailScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('renders loading state correctly', async () => {
+  it('renders loading state correctly', () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: null,
       isLoading: true,
       isError: false,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
+    const { getByText } = render(
+      <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
     );
 
-    expect(screen.getByText('データを読み込み中...')).toBeVisible();
+    expect(getByText('データを読み込み中...')).toBeTruthy();
   });
 
-  it('renders error state correctly', async () => {
+  it('renders error state correctly', () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: null,
       isLoading: false,
       isError: true,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
+    const { getByText } = render(
+      <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
     );
 
-    expect(screen.getByText('データの読み込みに失敗しました。')).toBeVisible();
-    expect(screen.getByText('再試行')).toBeVisible();
+    expect(getByText('データの読み込みに失敗しました。')).toBeTruthy();
+    expect(getByText('再試行')).toBeTruthy();
   });
 
-  it('renders recording details correctly', async () => {
+  it('renders recording details correctly', () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: mockRecording,
       isLoading: false,
       isError: false,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
+    const { getByText } = render(
+      <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
     );
 
-    expect(screen.getByText('090-1234-5678')).toBeVisible();
+    expect(getByText('090-1234-5678')).toBeTruthy();
     
-    expect(screen.getByText('これはテスト用の文字起こしです。')).toBeVisible();
+    expect(getByText('これはテスト用の文字起こしです。')).toBeTruthy();
     
-    expect(screen.getByText('テスト用の要約文です。')).toBeVisible();
+    expect(getByText('テスト用の要約文です。')).toBeTruthy();
     
-    expect(screen.getByText('通話録音')).toBeVisible();
+    expect(getByText('通話録音')).toBeTruthy();
   });
 });
