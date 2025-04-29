@@ -19,8 +19,9 @@ jest.mock('react-native-svg', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
   // Provide basic types for mocked components
-  const MockSvg = (props: any) => React.createElement('svg', props, props.children);
-  const MockPath = (props: any) => React.createElement('path', props, props.children);
+  type SvgProps = React.PropsWithChildren<Record<string, unknown>>;
+  const MockSvg = (props: SvgProps) => React.createElement('svg', props, props.children);
+  const MockPath = (props: SvgProps) => React.createElement('path', props, props.children);
   // Add other SVG elements as needed
   return {
     __esModule: true, // Required for ES Modules
