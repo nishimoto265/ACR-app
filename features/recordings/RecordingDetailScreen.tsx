@@ -22,37 +22,8 @@ export default function RecordingDetailScreen({ route }: Props) {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false)
   const [audioError, setAudioError] = useState<string | null>(null)
 
-  // 音声ファイルの読み込み
-  const loadAudio = useCallback(async () => {
-    if (!recording?.audioUrl) return
-
-    try {
-      setIsLoadingAudio(true)
-      setAudioError(null)
-
-      // 既存のサウンドをアンロード
-      if (sound) {
-        await sound.unloadAsync()
-      }
-
-      // 新しいサウンドをロード
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: recording.audioUrl },
-        { shouldPlay: false },
-        onPlaybackStatusUpdate,
-      )
-
-      setSound(newSound)
-    } catch (error) {
-      console.error("音声ファイルの読み込みに失敗しました:", error)
-      setAudioError("音声ファイルの読み込みに失敗しました")
-    } finally {
-      setIsLoadingAudio(false)
-    }
-  }, [recording?.audioUrl, sound])
-
   // 再生状態の更新ハンドラ
-  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return
 
     setIsPlaying(status.isPlaying)
@@ -64,10 +35,68 @@ export default function RecordingDetailScreen({ route }: Props) {
     if (status.durationMillis) {
       setDuration(status.durationMillis / 1000)
     }
-  }
+  }, []);
+
+  // 音声ファイルの読み込み
+  const loadAudio = useCallback(async () => {
+    if (sound) {
+      try {
+        await sound.unloadAsync();
+        setSound(null); // Set sound to null BEFORE loading new one
+      } catch (e) {
+        console.error("Error unloading existing sound:", e);
+        // Optionally handle unload error, maybe proceed?
+      }
+    }
+
+    if (!recording?.audioUrl) {
+      return;
+    }
+
+    setIsLoadingAudio(true);
+    setAudioError(null);
+
+    try {
+      // Assign result to an intermediate variable first
+      const loadResult = await Audio.Sound.createAsync(
+        { uri: recording.audioUrl },
+        { shouldPlay: false } // Initial status only
+      );
+
+      console.log('[loadAudio] Raw loadResult:', loadResult); // Log the raw result
+
+      // Now extract properties
+      const newSound = loadResult?.sound; // Use optional chaining for safety
+      const status = loadResult?.status;
+      console.log('[loadAudio] Extracted newSound:', newSound);
+      console.log('[loadAudio] Extracted status:', status);
+
+      // More robust check for status and isLoaded
+      if (!status || !status.isLoaded) {
+        throw new Error("Audio failed to load (status invalid or not loaded).");
+      }
+
+      // Ensure newSound is defined before calling methods on it
+      if (!newSound) {
+        throw new Error("Audio loading failed: sound object is undefined.");
+      }
+
+      newSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+
+      setSound(newSound);
+      setIsLoadingAudio(false);
+      console.log("Audio loaded successfully for URI:", recording.audioUrl);
+
+    } catch (error) {
+      console.error("[loadAudio] Error caught during audio loading:", error);
+      setAudioError("音声ファイルの読み込みに失敗しました");
+    } finally {
+      setIsLoadingAudio(false);
+    }
+  }, [recording?.audioUrl, onPlaybackStatusUpdate]);
 
   // 再生/一時停止の切り替え
-  const togglePlayback = async () => {
+  const togglePlayback = useCallback(async () => {
     if (!sound) return
 
     try {
@@ -80,7 +109,7 @@ export default function RecordingDetailScreen({ route }: Props) {
       console.error("再生エラー:", error)
       setAudioError("音声の再生に失敗しました")
     }
-  }
+  }, [sound, isPlaying]);
 
   // 再生位置のシーク
   const seekForward = async () => {
@@ -107,12 +136,16 @@ export default function RecordingDetailScreen({ route }: Props) {
 
   // コンポーネントのマウント時に音声をロード
   useEffect(() => {
-    loadAudio();
-    // Cleanup function to unload audio when component unmounts
-    return () => {
-      sound?.unloadAsync();
+    const cleanup = () => {
+      if (sound) {
+        console.log("Unloading Sound on unmount");
+        sound.unloadAsync();
+      }
     };
-    // Only run once on mount, or if loadAudio/sound changes (though they shouldn't typically)
+
+    loadAudio();
+
+    return cleanup;
   }, [loadAudio, sound]);
 
   if (isLoading) {
@@ -159,15 +192,17 @@ export default function RecordingDetailScreen({ route }: Props) {
               </View>
             ) : recording.audioUrl ? (
               <View style={styles.playerControls}>
-                <IconButton icon="rewind-10" size={24} onPress={seekBackward} disabled={!sound} />
+                <IconButton icon="rewind-10" size={24} onPress={seekBackward} disabled={!sound} accessibilityRole="button" accessibilityLabel="rewind-10" />
                 <IconButton
                   icon={isPlaying ? "pause" : "play"}
+                  accessibilityRole="button"
+                  accessibilityLabel={isPlaying ? "pause" : "play"}
                   size={36}
                   onPress={togglePlayback}
                   disabled={!sound}
                   style={styles.playButton}
                 />
-                <IconButton icon="fast-forward-10" size={24} onPress={seekForward} disabled={!sound} />
+                <IconButton icon="fast-forward-10" size={24} onPress={seekForward} disabled={!sound} accessibilityRole="button" accessibilityLabel="fast-forward-10" />
                 <Text style={styles.duration}>
                   {formatDuration(position)} / {formatDuration(duration)}
                 </Text>
