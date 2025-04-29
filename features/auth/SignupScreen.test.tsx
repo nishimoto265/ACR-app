@@ -33,7 +33,7 @@ const mockRoute = {
  * 
  * Error: "You are trying to `import` a file after the Jest environment has been torn down"
  */
-describe.skip('SignupScreen', () => {
+describe('SignupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     

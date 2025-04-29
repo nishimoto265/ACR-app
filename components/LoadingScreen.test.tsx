@@ -6,18 +6,6 @@ import LoadingScreen from './LoadingScreen'; // テスト対象のコンポー�
 // MD3LightTheme (または使用バージョンに合わせて MD2LightTheme) をインポート
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 
-// react-native-paper の ActivityIndicator をモック
-jest.mock('react-native-paper', () => {
-  const ActualPaper = jest.requireActual('react-native-paper'); // 元のモジュールを取得
-  // Define the mock component separately and wrap with jest.fn()
-  const CustomActivityIndicator = jest.fn(() => 'MockIndicator');
-  return {
-    ...ActualPaper, // PaperProviderなど、他のエクスポートはそのまま使う
-    // Assign the defined component
-    ActivityIndicator: CustomActivityIndicator,
-  };
-});
-
 // デフォルトテーマを定義 (バージョンに合わせて調整)
 const theme = MD3LightTheme;
 
