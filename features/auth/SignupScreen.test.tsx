@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, act } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import SignupScreen from './SignupScreen';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,15 +25,14 @@ const mockRoute = {
 } as unknown as SignupScreenProps['route'];
 
 /**
- * Minimal test suite for SignupScreen
+ * Test suite for SignupScreen
  * 
- * Note: Tests have been temporarily skipped due to persistent Jest environment 
- * tear-down errors in CI. This is a temporary solution until the root cause 
- * of the environment tear-down issues can be addressed.
- * 
- * Error: "You are trying to `import` a file after the Jest environment has been torn down"
+ * Fixed environment tear-down issues by:
+ * 1. Using act() to wrap render and unmount operations
+ * 2. Properly mocking React Native Paper components
+ * 3. Ensuring all animations and timers are cleaned up
  */
-describe.skip('SignupScreen', () => {
+describe('SignupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -43,15 +42,29 @@ describe.skip('SignupScreen', () => {
     });
   });
 
-  // Single basic test that doesn't use screen queries or fireEvent
+  afterEach(() => {
+    jest.clearAllTimers();
+  });
+
   it('renders without crashing', () => {
-    const { unmount } = render(
-      <PaperProvider>
-        <SignupScreen navigation={mockNavigation} route={mockRoute} />
-      </PaperProvider>
-    );
+    // Define component with proper type
+    let component: ReturnType<typeof render> | undefined;
     
-    // Immediately unmount to avoid any state updates
-    unmount();
+    // Wrap in act to handle all state updates
+    act(() => {
+      component = render(
+        <PaperProvider>
+          <SignupScreen navigation={mockNavigation} route={mockRoute} />
+        </PaperProvider>
+      );
+    });
+    
+    expect(component).toBeTruthy();
+    
+    if (component) {
+      act(() => {
+        component.unmount();
+      });
+    }
   });
 });

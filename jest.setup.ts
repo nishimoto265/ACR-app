@@ -5,12 +5,20 @@ import 'react-native-gesture-handler/jestSetup';
 
 jest.setTimeout(30000);
 
+beforeAll(() => {
+  jest.spyOn(global, 'setTimeout');
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 afterEach(() => {
   jest.clearAllTimers();
+  jest.clearAllMocks();
+  
+  jest.spyOn(global, 'requestAnimationFrame').mockRestore();
+  jest.spyOn(global, 'cancelAnimationFrame').mockRestore();
 });
 
 // react-native-svg のモックを追加
@@ -155,6 +163,34 @@ jest.mock('@react-navigation/native', () => ({
   })),
   useIsFocused: jest.fn(() => true),
 }));
+
+jest.mock('react-native-paper', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockComponent = (name: string): any => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const component = ({ children, ...props }: { children?: any; [key: string]: any }) => {
+      return React.createElement(name, props, children);
+    };
+    component.displayName = name;
+    return component;
+  };
+  
+  const TextInput = mockComponent('TextInput');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (TextInput as any).Icon = mockComponent('TextInput.Icon');
+  
+  return {
+    Button: mockComponent('Button'),
+    TextInput,
+    Text: mockComponent('Text'),
+    HelperText: mockComponent('HelperText'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    PaperProvider: ({ children }: { children: any }) => children,
+  };
+});
 
 global.requestAnimationFrame = (callback) => {
   return setTimeout(callback, 0);
