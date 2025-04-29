@@ -10,41 +10,30 @@ jest.mock('../../hooks/useRecordings', () => ({
   useRecording: jest.fn(),
 }));
 
-jest.mock('expo-av', () => {
-  const mockSound = {
-    unloadAsync: jest.fn().mockResolvedValue(undefined),
-    playAsync: jest.fn().mockResolvedValue(undefined),
-    pauseAsync: jest.fn().mockResolvedValue(undefined),
-    setPositionAsync: jest.fn().mockResolvedValue(undefined),
-    getStatusAsync: jest.fn().mockResolvedValue({
-      isLoaded: true,
-      durationMillis: 60000,
-      positionMillis: 0,
-      isPlaying: false,
-    }),
-  };
-
-  return {
-    Audio: {
-      Sound: {
-        createAsync: jest.fn().mockResolvedValue({
-          sound: mockSound,
-          status: {
-            isLoaded: true,
-            durationMillis: 60000,
-            positionMillis: 0,
-            isPlaying: false,
-          },
-        }),
-      },
+jest.mock('expo-av', () => ({
+  Audio: {
+    Sound: {
+      createAsync: jest.fn().mockResolvedValue({
+        sound: {
+          unloadAsync: jest.fn().mockResolvedValue(undefined),
+        },
+        status: { isLoaded: true },
+      }),
     },
-  };
-});
+  },
+}));
 
 jest.mock('../../utils/dateFormatter', () => ({
   formatDate: jest.fn().mockReturnValue('2024年4月1日'),
   formatDuration: jest.fn().mockReturnValue('1:00'),
 }));
+
+jest.spyOn(console, 'error').mockImplementation((message) => {
+  if (message && message.includes('Warning: An update to RecordingDetailScreen inside a test was not wrapped in act')) {
+    return;
+  }
+  console.warn(message);
+});
 
 describe('RecordingDetailScreen', () => {
   type RecordingDetailProps = NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>;
@@ -73,6 +62,12 @@ describe('RecordingDetailScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   test('renders loading state correctly', () => {
