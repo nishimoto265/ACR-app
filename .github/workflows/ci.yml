@@ -18,14 +18,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18' # プロジェクトで使用しているNode.jsバージョンに合わせてください
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run linters
         # package.json の scripts に lint コマンド (例: "lint": "eslint . && prettier --check .") が定義されていることを想定
-        run: yarn lint
+        run: npm run lint
 
   test:
     name: Unit Tests
@@ -39,11 +39,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18' # プロジェクトで使用しているNode.jsバージョンに合わせてください
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run unit tests
         # package.json の scripts に test コマンド (例: "test": "jest") が定義されていることを想定
-        run: yarn test
+        run: npm test
