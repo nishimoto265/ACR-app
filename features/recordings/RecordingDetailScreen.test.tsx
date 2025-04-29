@@ -1,8 +1,10 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react-native';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import RecordingDetailScreen from './RecordingDetailScreen';
 import { useRecording } from '../../hooks/useRecordings';
+import { RecoilRoot } from 'recoil';
+import { View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RecordingsStackParamList } from '../../navigation/MainNavigator';
 
@@ -14,7 +16,7 @@ const mockRoute = {
   key: 'RecordingDetailKey',
   name: 'RecordingDetail',
   params: { recordingId: 'test-recording-id' },
-} as NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>['route'];
+} as unknown as NativeStackScreenProps<RecordingsStackParamList, 'RecordingDetail'>['route'];
 
 const mockNavigation = {
   navigate: jest.fn(),
@@ -30,9 +32,21 @@ const mockRecording = {
   summary: 'テスト用の要約文です。',
 };
 
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <RecoilRoot>
+    <PaperProvider>
+      {children}
+    </PaperProvider>
+  </RecoilRoot>
+);
+TestWrapper.displayName = 'TestWrapper';
+
 describe('RecordingDetailScreen', () => {
+  jest.useFakeTimers();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
   });
 
   it('renders loading state correctly', async () => {
@@ -42,15 +56,13 @@ describe('RecordingDetailScreen', () => {
       isError: false,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <TestWrapper>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </TestWrapper>
+    );
 
-    expect(screen.getByText('データを読み込み中...')).toBeTruthy();
+    expect(await screen.findByText('データを読み込み中...')).toBeTruthy();
   });
 
   it('renders error state correctly', async () => {
@@ -60,15 +72,13 @@ describe('RecordingDetailScreen', () => {
       isError: true,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <TestWrapper>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </TestWrapper>
+    );
 
-    expect(screen.getByText('データの読み込みに失敗しました。')).toBeTruthy();
+    expect(await screen.findByText('データの読み込みに失敗しました。')).toBeTruthy();
   });
 
   it('renders recording details correctly', async () => {
@@ -78,20 +88,14 @@ describe('RecordingDetailScreen', () => {
       isError: false,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <TestWrapper>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </TestWrapper>
+    );
 
-    await waitFor(() => {
-      expect(screen.getByText('090-1234-5678')).toBeTruthy();
-    });
-    
-    expect(screen.getByText('これはテスト用の文字起こしです。')).toBeTruthy();
-    
-    expect(screen.getByText('テスト用の要約文です。')).toBeTruthy();
+    expect(await screen.findByText('090-1234-5678')).toBeTruthy();
+    expect(await screen.findByText('これはテスト用の文字起こしです。')).toBeTruthy();
+    expect(await screen.findByText('テスト用の要約文です。')).toBeTruthy();
   });
 });

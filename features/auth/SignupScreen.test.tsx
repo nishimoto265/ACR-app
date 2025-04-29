@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, act } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import SignupScreen from './SignupScreen';
 import { useAuth } from '../../hooks/useAuth';
+import { RecoilRoot } from 'recoil';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 
@@ -20,11 +21,23 @@ const mockNavigation = {
 const mockRoute = {
   key: 'Signup',
   name: 'Signup',
-} as SignupScreenProps['route'];
+} as unknown as SignupScreenProps['route'];
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <RecoilRoot>
+    <PaperProvider>
+      {children}
+    </PaperProvider>
+  </RecoilRoot>
+);
+TestWrapper.displayName = 'TestWrapper';
 
 describe('SignupScreen', () => {
+  jest.useFakeTimers();
+  
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
     
     // Mock the useAuth hook return value
     (useAuth as jest.Mock).mockReturnValue({
@@ -33,14 +46,12 @@ describe('SignupScreen', () => {
   });
 
   it('renders correctly', async () => {
-    await act(async () => {
-      const { getByText } = render(
-        <PaperProvider>
-          <SignupScreen navigation={mockNavigation} route={mockRoute} />
-        </PaperProvider>
-      );
-      
-      expect(getByText('アカウント作成')).toBeTruthy();
-    });
+    render(
+      <TestWrapper>
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
+      </TestWrapper>
+    );
+    
+    expect(await screen.findByText('アカウント作成')).toBeTruthy();
   });
 });
