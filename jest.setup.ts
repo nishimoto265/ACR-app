@@ -86,21 +86,33 @@ jest.mock('expo-av', () => {
 jest.mock('react-native-reanimated', () => {
   return {
     useSharedValue: jest.fn((initialValue) => ({ value: initialValue })),
-    useAnimatedStyle: jest.fn(() => ({})),
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    useAnimatedStyle: jest.fn(() => ({} as Record<string, unknown>)),
     withTiming: jest.fn((toValue) => toValue),
     withSpring: jest.fn((toValue) => toValue),
     Easing: {
-      bezier: jest.fn(() => ({})),
-      linear: jest.fn(() => ({})),
-      ease: jest.fn(() => ({})),
-      quad: jest.fn(() => ({})),
-      cubic: jest.fn(() => ({})),
-      sin: jest.fn(() => ({})),
-      circle: jest.fn(() => ({})),
-      exp: jest.fn(() => ({})),
-      in: jest.fn(() => ({})),
-      out: jest.fn(() => ({})),
-      inOut: jest.fn(() => ({})),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      bezier: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      linear: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      ease: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      quad: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      cubic: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      sin: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      circle: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      exp: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      in: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      out: jest.fn(() => ({} as Record<string, unknown>)),
+      // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+      inOut: jest.fn(() => ({} as Record<string, unknown>)),
     },
     interpolate: jest.fn(() => 0),
     Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
@@ -138,7 +150,8 @@ jest.mock('@react-navigation/native', () => ({
     goBack: jest.fn(),
   })),
   useRoute: jest.fn(() => ({
-    params: {},
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    params: {} as Record<string, unknown>,
   })),
   useIsFocused: jest.fn(() => true),
 }));
