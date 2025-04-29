@@ -1,9 +1,8 @@
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react-native';
+import { render, screen, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import RecordingDetailScreen from './RecordingDetailScreen';
 import { useRecording } from '../../hooks/useRecordings';
-import 'expo-av';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RecordingsStackParamList } from '../../navigation/MainNavigator';
 
@@ -11,21 +10,38 @@ jest.mock('../../hooks/useRecordings', () => ({
   useRecording: jest.fn(),
 }));
 
-jest.mock('expo-av', () => ({
-  Audio: {
-    Sound: {
-      createAsync: jest.fn().mockResolvedValue({
-        sound: {
-          unloadAsync: jest.fn().mockResolvedValue(undefined),
-          playAsync: jest.fn().mockResolvedValue(undefined),
-          pauseAsync: jest.fn().mockResolvedValue(undefined),
-          setPositionAsync: jest.fn().mockResolvedValue(undefined),
-        },
-        status: { isLoaded: true, durationMillis: 60000 },
-      }),
+jest.mock('expo-av', () => {
+  const mockPlaybackStatus = {
+    isLoaded: true,
+    durationMillis: 60000,
+    positionMillis: 0,
+    isPlaying: false,
+  };
+  
+  const mockSound = {
+    unloadAsync: jest.fn().mockResolvedValue(undefined),
+    playAsync: jest.fn().mockResolvedValue(undefined),
+    pauseAsync: jest.fn().mockResolvedValue(undefined),
+    setPositionAsync: jest.fn().mockResolvedValue(undefined),
+  };
+  
+  return {
+    Audio: {
+      Sound: {
+        createAsync: jest.fn().mockImplementation((source, options, callback) => {
+          if (callback) {
+            callback(mockPlaybackStatus);
+          }
+          return Promise.resolve({
+            sound: mockSound,
+            status: mockPlaybackStatus,
+          });
+        }),
+      },
     },
-  },
-}));
+    AVPlaybackStatus: mockPlaybackStatus,
+  };
+});
 
 const mockRoute = {
   key: 'RecordingDetailKey',
@@ -59,17 +75,13 @@ describe('RecordingDetailScreen', () => {
       isError: false,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <PaperProvider>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </PaperProvider>
+    );
 
-    await waitFor(() => {
-      expect(screen.getByText('データを読み込み中...')).toBeVisible();
-    });
+    expect(screen.getByText('データを読み込み中...')).toBeVisible();
   });
 
   it('renders error state correctly', async () => {
@@ -79,18 +91,14 @@ describe('RecordingDetailScreen', () => {
       isError: true,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <PaperProvider>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </PaperProvider>
+    );
 
-    await waitFor(() => {
-      expect(screen.getByText('データの読み込みに失敗しました。')).toBeVisible();
-      expect(screen.getByText('再試行')).toBeVisible();
-    });
+    expect(screen.getByText('データの読み込みに失敗しました。')).toBeVisible();
+    expect(screen.getByText('再試行')).toBeVisible();
   });
 
   it('renders recording details correctly', async () => {
@@ -100,19 +108,18 @@ describe('RecordingDetailScreen', () => {
       isError: false,
     });
 
-    await act(async () => {
-      render(
-        <PaperProvider>
-          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-        </PaperProvider>
-      );
-    });
+    render(
+      <PaperProvider>
+        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+      </PaperProvider>
+    );
 
-    await waitFor(() => {
-      expect(screen.getByText('090-1234-5678')).toBeVisible();
-      expect(screen.getByText('これはテスト用の文字起こしです。')).toBeVisible();
-      expect(screen.getByText('テスト用の要約文です。')).toBeVisible();
-      expect(screen.getByText('通話録音')).toBeVisible();
-    });
+    expect(screen.getByText('090-1234-5678')).toBeVisible();
+    
+    expect(screen.getByText('これはテスト用の文字起こしです。')).toBeVisible();
+    
+    expect(screen.getByText('テスト用の要約文です。')).toBeVisible();
+    
+    expect(screen.getByText('通話録音')).toBeVisible();
   });
 });
