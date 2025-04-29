@@ -5,6 +5,20 @@ import 'react-native-gesture-handler/jestSetup';
 
 jest.setTimeout(30000);
 
+jest.mock('expo-constants', () => ({
+  expoConfig: {
+    extra: {
+      firebaseApiKey: 'mock-api-key',
+      firebaseAuthDomain: 'mock-auth-domain',
+      firebaseProjectId: 'mock-project-id',
+      firebaseStorageBucket: 'mock-storage-bucket',
+      firebaseMessagingSenderId: 'mock-messaging-sender-id',
+      firebaseAppId: 'mock-app-id',
+    },
+    version: '1.0.0',
+  },
+}));
+
 beforeAll(() => {
   jest.spyOn(global, 'setTimeout');
 });
@@ -185,7 +199,7 @@ jest.mock('react-native', () => {
       spring: jest.fn(() => ({
         start: jest.fn((callback) => callback && callback({ finished: true })),
       })),
-      Value: jest.fn((value) => ({
+      Value: jest.fn(() => ({
         setValue: jest.fn(),
         interpolate: jest.fn(() => ({
           interpolate: jest.fn(),
@@ -245,8 +259,32 @@ jest.mock('react-native-paper', () => {
     HelperText: mockComponent('HelperText'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     PaperProvider: ({ children }: { children: any }) => children,
+    ActivityIndicator: mockComponent('ActivityIndicator'),
+    List: {
+      Item: mockComponent('List.Item'),
+      Section: mockComponent('List.Section'),
+    },
+    Divider: mockComponent('Divider'),
+    Switch: mockComponent('Switch'),
+    MD3LightTheme: {},
   };
 });
+
+jest.mock('react-native-safe-area-context', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  SafeAreaProvider: ({ children }: { children: any }) => children,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  SafeAreaView: ({ children }: { children: any }) => children,
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  setUser: jest.fn(),
+  withScope: jest.fn((callback) => callback({ setTag: jest.fn() })),
+}));
 
 global.requestAnimationFrame = (callback) => {
   return setTimeout(callback, 0);
