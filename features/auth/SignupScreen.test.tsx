@@ -3,19 +3,23 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/react-nativ
 import { PaperProvider } from 'react-native-paper';
 import SignupScreen from './SignupScreen';
 import { useAuth } from '../../hooks/useAuth';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
+type SignupScreenProps = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
+
 const mockNavigation = {
   navigate: jest.fn(),
-};
+} as unknown as SignupScreenProps['navigation'];
 
 const mockRoute = {
   key: 'Signup',
   name: 'Signup',
-};
+} as SignupScreenProps['route'];
 
 describe('SignupScreen', () => {
   beforeEach(() => {
@@ -29,7 +33,7 @@ describe('SignupScreen', () => {
   it('renders correctly', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -44,7 +48,7 @@ describe('SignupScreen', () => {
   it('shows error when form is incomplete', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -56,7 +60,7 @@ describe('SignupScreen', () => {
   it('shows error when passwords do not match', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -72,7 +76,7 @@ describe('SignupScreen', () => {
   it('shows error when password is too short', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -93,7 +97,7 @@ describe('SignupScreen', () => {
 
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -116,7 +120,7 @@ describe('SignupScreen', () => {
 
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -134,7 +138,7 @@ describe('SignupScreen', () => {
   it('navigates to login screen when button is pressed', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -146,7 +150,7 @@ describe('SignupScreen', () => {
   it('toggles password visibility when eye icon is pressed', () => {
     render(
       <PaperProvider>
-        <SignupScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act, waitFor } from '@testing-library/react-native';
 import { AuthProvider, AuthContext } from './AuthProvider';
 import * as firebaseAuth from 'firebase/auth';
+import type { User } from 'firebase/auth';
 
 jest.mock('firebase/auth', () => {
   const originalModule = jest.requireActual('firebase/auth');
@@ -19,9 +20,19 @@ jest.mock('../../services/firebase', () => ({
   auth: {},
 }));
 
+type AuthContextType = {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signInAnonymously: () => Promise<void>;
+};
+
 describe('AuthProvider', () => {
-  const mockUser = { uid: 'test-uid', email: 'test@example.com' };
-  let authStateCallback: (user: any) => void;
+  const mockUser = { uid: 'test-uid', email: 'test@example.com' } as User;
+  let authStateCallback: (user: User | null) => void;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,7 +44,7 @@ describe('AuthProvider', () => {
   });
 
   it('provides initial loading state', () => {
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -46,13 +57,13 @@ describe('AuthProvider', () => {
       </AuthProvider>
     );
     
-    expect(contextValue.isLoading).toBe(true);
-    expect(contextValue.user).toBe(null);
-    expect(contextValue.error).toBe(null);
+    expect(contextValue?.isLoading).toBe(true);
+    expect(contextValue?.user).toBe(null);
+    expect(contextValue?.error).toBe(null);
   });
 
   it('updates user state when auth state changes', async () => {
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -70,15 +81,15 @@ describe('AuthProvider', () => {
     });
     
     await waitFor(() => {
-      expect(contextValue.isLoading).toBe(false);
-      expect(contextValue.user).toBe(mockUser);
+      expect(contextValue?.isLoading).toBe(false);
+      expect(contextValue?.user).toBe(mockUser);
     });
   });
 
   it('calls signInWithEmailAndPassword when signIn is called', async () => {
     (firebaseAuth.signInWithEmailAndPassword as jest.Mock).mockResolvedValue({});
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -92,7 +103,7 @@ describe('AuthProvider', () => {
     );
     
     await act(async () => {
-      await contextValue.signIn('test@example.com', 'password123');
+      await contextValue?.signIn('test@example.com', 'password123');
     });
     
     expect(firebaseAuth.signInWithEmailAndPassword).toHaveBeenCalledWith(
@@ -105,7 +116,7 @@ describe('AuthProvider', () => {
   it('calls createUserWithEmailAndPassword when signUp is called', async () => {
     (firebaseAuth.createUserWithEmailAndPassword as jest.Mock).mockResolvedValue({});
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -119,7 +130,7 @@ describe('AuthProvider', () => {
     );
     
     await act(async () => {
-      await contextValue.signUp('test@example.com', 'password123');
+      await contextValue?.signUp('test@example.com', 'password123');
     });
     
     expect(firebaseAuth.createUserWithEmailAndPassword).toHaveBeenCalledWith(
@@ -132,7 +143,7 @@ describe('AuthProvider', () => {
   it('calls signOut when signOut is called', async () => {
     (firebaseAuth.signOut as jest.Mock).mockResolvedValue({});
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -146,7 +157,7 @@ describe('AuthProvider', () => {
     );
     
     await act(async () => {
-      await contextValue.signOut();
+      await contextValue?.signOut();
     });
     
     expect(firebaseAuth.signOut).toHaveBeenCalled();
@@ -155,7 +166,7 @@ describe('AuthProvider', () => {
   it('calls signInAnonymously when signInAnonymously is called', async () => {
     (firebaseAuth.signInAnonymously as jest.Mock).mockResolvedValue({});
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -169,7 +180,7 @@ describe('AuthProvider', () => {
     );
     
     await act(async () => {
-      await contextValue.signInAnonymously();
+      await contextValue?.signInAnonymously();
     });
     
     expect(firebaseAuth.signInAnonymously).toHaveBeenCalled();
@@ -178,7 +189,7 @@ describe('AuthProvider', () => {
   it('sets error state when signIn fails', async () => {
     (firebaseAuth.signInWithEmailAndPassword as jest.Mock).mockRejectedValue(new Error('Auth error'));
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -193,18 +204,18 @@ describe('AuthProvider', () => {
     
     await act(async () => {
       try {
-        await contextValue.signIn('test@example.com', 'password123');
-      } catch (error) {
+        await contextValue?.signIn('test@example.com', 'password123');
+      } catch {
       }
     });
     
-    expect(contextValue.error).toBe('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
+    expect(contextValue?.error).toBe('ログインに失敗しました。メールアドレスとパスワードを確認してください。');
   });
 
   it('sets error state when signUp fails', async () => {
     (firebaseAuth.createUserWithEmailAndPassword as jest.Mock).mockRejectedValue(new Error('Auth error'));
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -219,18 +230,18 @@ describe('AuthProvider', () => {
     
     await act(async () => {
       try {
-        await contextValue.signUp('test@example.com', 'password123');
-      } catch (error) {
+        await contextValue?.signUp('test@example.com', 'password123');
+      } catch {
       }
     });
     
-    expect(contextValue.error).toBe('アカウント作成に失敗しました。別のメールアドレスを試してください。');
+    expect(contextValue?.error).toBe('アカウント作成に失敗しました。別のメールアドレスを試してください。');
   });
 
   it('sets error state when signOut fails', async () => {
     (firebaseAuth.signOut as jest.Mock).mockRejectedValue(new Error('Auth error'));
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -245,18 +256,18 @@ describe('AuthProvider', () => {
     
     await act(async () => {
       try {
-        await contextValue.signOut();
-      } catch (error) {
+        await contextValue?.signOut();
+      } catch {
       }
     });
     
-    expect(contextValue.error).toBe('ログアウトに失敗しました。');
+    expect(contextValue?.error).toBe('ログアウトに失敗しました。');
   });
 
   it('sets error state when signInAnonymously fails', async () => {
     (firebaseAuth.signInAnonymously as jest.Mock).mockRejectedValue(new Error('Auth error'));
     
-    let contextValue;
+    let contextValue: AuthContextType | undefined;
     
     render(
       <AuthProvider>
@@ -271,11 +282,11 @@ describe('AuthProvider', () => {
     
     await act(async () => {
       try {
-        await contextValue.signInAnonymously();
-      } catch (error) {
+        await contextValue?.signInAnonymously();
+      } catch {
       }
     });
     
-    expect(contextValue.error).toBe('匿名ログインに失敗しました。');
+    expect(contextValue?.error).toBe('匿名ログインに失敗しました。');
   });
 });

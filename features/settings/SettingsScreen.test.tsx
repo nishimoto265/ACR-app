@@ -1,11 +1,10 @@
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import SettingsScreen from './SettingsScreen';
 import { useAuth } from '../../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: jest.fn(),

@@ -4,6 +4,8 @@ import { PaperProvider } from 'react-native-paper';
 import HomeScreen from './HomeScreen';
 import { useRecordings, useSearchRecordings } from '../../hooks/useRecordings';
 import { formatDate } from '../../utils/dateFormatter';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RecordingsStackParamList } from '../../navigation/MainNavigator';
 
 jest.mock('../../hooks/useRecordings', () => ({
   useRecordings: jest.fn(),
@@ -14,14 +16,16 @@ jest.mock('../../utils/dateFormatter', () => ({
   formatDate: jest.fn(),
 }));
 
+type HomeScreenProps = NativeStackScreenProps<RecordingsStackParamList, 'Home'>;
+
 const mockNavigation = {
   navigate: jest.fn(),
-};
+} as unknown as HomeScreenProps['navigation'];
 
 const mockRoute = {
   key: 'Home',
   name: 'Home',
-};
+} as HomeScreenProps['route'];
 
 const mockRecordings = [
   {
@@ -69,7 +73,7 @@ describe('HomeScreen', () => {
   it('renders correctly with recordings data', () => {
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -89,7 +93,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -107,7 +111,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -125,7 +129,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -135,7 +139,7 @@ describe('HomeScreen', () => {
   it('navigates to recording detail when a recording is pressed', () => {
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -154,7 +158,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -185,7 +189,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -203,7 +207,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
 
@@ -230,7 +234,7 @@ describe('HomeScreen', () => {
 
     render(
       <PaperProvider>
-        <HomeScreen navigation={mockNavigation as any} route={mockRoute as any} />
+        <HomeScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
     
