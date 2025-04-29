@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request:
     branches: [ main ] # mainブランチへのPull Request時に実行
+  push:
+    branches: [ main ] # mainブランチへのpush時に実行
 
 jobs:
   lint:

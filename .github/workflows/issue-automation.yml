@@ -1,0 +1,88 @@
+name: Issue Automation
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  auto_assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-assign issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            
+            // 新しいissueが作成された場合
+            if (context.eventName === 'issues' && context.payload.action === 'opened') {
+              console.log(`Processing new issue #${issue.number}: ${issue.title}`);
+              
+              // バグ報告の場合は特定のラベルを追加
+              if (issue.title.toLowerCase().includes('bug') || 
+                  issue.body.toLowerCase().includes('bug') || 
+                  issue.body.toLowerCase().includes('エラー') || 
+                  issue.body.toLowerCase().includes('問題')) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['bug', 'triage-needed']
+                });
+                console.log(`Added 'bug' and 'triage-needed' labels to issue #${issue.number}`);
+              }
+              
+              // 機能リクエストの場合は特定のラベルを追加
+              if (issue.title.toLowerCase().includes('feature') || 
+                  issue.title.toLowerCase().includes('enhancement') || 
+                  issue.body.toLowerCase().includes('feature request') || 
+                  issue.body.toLowerCase().includes('機能追加') || 
+                  issue.body.toLowerCase().includes('機能リクエスト')) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['enhancement']
+                });
+                console.log(`Added 'enhancement' label to issue #${issue.number}`);
+              }
+            }
+
+  auto_close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-close issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // コメントが追加された場合
+            if (context.eventName === 'issue_comment' && context.payload.action === 'created') {
+              const issue = context.payload.issue;
+              const comment = context.payload.comment;
+              
+              // 'close this issue'または'解決しました'というキーワードを含むコメントがあれば自動的にクローズ
+              if (comment.body.toLowerCase().includes('close this issue') || 
+                  comment.body.toLowerCase().includes('解決しました') || 
+                  comment.body.toLowerCase().includes('修正しました')) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed'
+                });
+                console.log(`Closed issue #${issue.number} based on comment`);
+                
+                // 解決済みラベルを追加
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: ['resolved']
+                });
+                console.log(`Added 'resolved' label to issue #${issue.number}`);
+              }
+            }

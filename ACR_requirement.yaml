@@ -74,7 +74,7 @@ non_functional_requirements:
     firestore_rules: request.auth != null
     storage_rules: request.auth != null
   ci_cd:
-    - GitHub Actions: lint, unit tests
+    - GitHub Actions: lint, unit tests, issue automation
     - Expo EAS or Fastlane: build & release
 
 tech_stack:
@@ -119,8 +119,14 @@ ci_cd_pipeline:
     - lint (ESLint, Prettier)
     - unit_tests (Jest)
   on_merge_main:
+    - lint (ESLint, Prettier)
+    - unit_tests (Jest)
     - e2e_tests (Detox)
     - build_alpha (Expo EAS)
+  on_issues:
+    - auto_label
+    - auto_assign
+    - auto_close
   on_release_tag:
     - release_build (Fastlane)
 
