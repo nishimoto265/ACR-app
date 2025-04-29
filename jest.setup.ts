@@ -139,6 +139,62 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+jest.mock('react-native', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mockComponent = (name: string): any => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const component = ({ children, ...props }: { children?: any; [key: string]: any }) => {
+      return React.createElement(name, props, children);
+    };
+    component.displayName = name;
+    return component;
+  };
+  
+  return {
+    ActivityIndicator: mockComponent('ActivityIndicator'),
+    View: mockComponent('View'),
+    Text: mockComponent('Text'),
+    ScrollView: mockComponent('ScrollView'),
+    TouchableOpacity: mockComponent('TouchableOpacity'),
+    FlatList: mockComponent('FlatList'),
+    TextInput: mockComponent('TextInput'),
+    KeyboardAvoidingView: mockComponent('KeyboardAvoidingView'),
+    Pressable: mockComponent('Pressable'),
+    Image: mockComponent('Image'),
+    StyleSheet: {
+      create: (styles: Record<string, unknown>) => styles,
+      flatten: (styles: unknown) => styles,
+    },
+    Platform: {
+      OS: 'ios',
+      select: (obj: Record<string, unknown>) => obj.ios || obj.default,
+    },
+    Dimensions: {
+      get: jest.fn().mockReturnValue({ width: 375, height: 812 }),
+    },
+    Animated: {
+      View: mockComponent('Animated.View'),
+      Text: mockComponent('Animated.Text'),
+      createAnimatedComponent: jest.fn((component) => component),
+      timing: jest.fn(() => ({
+        start: jest.fn((callback) => callback && callback({ finished: true })),
+      })),
+      spring: jest.fn(() => ({
+        start: jest.fn((callback) => callback && callback({ finished: true })),
+      })),
+      Value: jest.fn((value) => ({
+        setValue: jest.fn(),
+        interpolate: jest.fn(() => ({
+          interpolate: jest.fn(),
+        })),
+      })),
+    },
+  };
+});
+
 jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 
 jest.mock('react-native/Libraries/Alert/Alert', () => ({
