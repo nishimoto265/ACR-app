@@ -92,7 +92,7 @@ describe('HomeScreen', () => {
       
       unmount();
     } catch (error) {
-      fail(`HomeScreen failed to render: ${error}`);
+      expect(`HomeScreen failed to render: ${error}`).toBeFalsy();
     }
   });
 
@@ -114,7 +114,7 @@ describe('HomeScreen', () => {
       
       unmount();
     } catch (error) {
-      fail(`HomeScreen loading state failed to render: ${error}`);
+      expect(`HomeScreen loading state failed to render: ${error}`).toBeFalsy();
     }
   });
 
@@ -136,7 +136,7 @@ describe('HomeScreen', () => {
       
       unmount();
     } catch (error) {
-      fail(`HomeScreen error state failed to render: ${error}`);
+      expect(`HomeScreen error state failed to render: ${error}`).toBeFalsy();
     }
   });
 
@@ -158,7 +158,7 @@ describe('HomeScreen', () => {
       
       unmount();
     } catch (error) {
-      fail(`HomeScreen empty state failed to render: ${error}`);
+      expect(`HomeScreen empty state failed to render: ${error}`).toBeFalsy();
     }
   });
 });

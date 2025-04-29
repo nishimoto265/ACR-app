@@ -6,6 +6,19 @@ import { useRecording } from '../../hooks/useRecordings';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RecordingsStackParamList } from '../../navigation/MainNavigator';
 
+jest.mock('react-native', () => {
+  const rn = jest.requireActual('react-native');
+  rn.ActivityIndicator = 'ActivityIndicator';
+  rn.View = 'View';
+  rn.Text = 'Text';
+  rn.ScrollView = 'ScrollView';
+  rn.TouchableOpacity = 'TouchableOpacity';
+  rn.StyleSheet = {
+    create: (styles: Record<string, unknown>) => styles,
+  };
+  return rn;
+});
+
 jest.mock('../../hooks/useRecordings', () => ({
   useRecording: jest.fn(),
 }));
@@ -49,7 +62,7 @@ describe('RecordingDetailScreen', () => {
       
       unmount();
     } catch (error) {
-      fail(`RecordingDetailScreen failed to render: ${error}`);
+      expect(`RecordingDetailScreen failed to render: ${error}`).toBeFalsy();
     }
   });
 });
