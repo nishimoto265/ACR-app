@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, act, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import RecordingDetailScreen from './RecordingDetailScreen';
 import { useRecording } from '../../hooks/useRecordings';
@@ -52,58 +52,67 @@ describe('RecordingDetailScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('renders loading state correctly', () => {
+  it('renders loading state correctly', async () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: null,
       isLoading: true,
       isError: false,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
-    );
+    await act(async () => {
+      render(
+        <PaperProvider>
+          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+        </PaperProvider>
+      );
+    });
 
-    expect(screen.getByText('データを読み込み中...')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText('データを読み込み中...')).toBeVisible();
+    });
   });
 
-  it('renders error state correctly', () => {
+  it('renders error state correctly', async () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: null,
       isLoading: false,
       isError: true,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
-    );
+    await act(async () => {
+      render(
+        <PaperProvider>
+          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+        </PaperProvider>
+      );
+    });
 
-    expect(screen.getByText('データの読み込みに失敗しました。')).toBeVisible();
-    expect(screen.getByText('再試行')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText('データの読み込みに失敗しました。')).toBeVisible();
+      expect(screen.getByText('再試行')).toBeVisible();
+    });
   });
 
-  it('renders recording details correctly', () => {
+  it('renders recording details correctly', async () => {
     (useRecording as jest.Mock).mockReturnValue({
       data: mockRecording,
       isLoading: false,
       isError: false,
     });
 
-    render(
-      <PaperProvider>
-        <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
-      </PaperProvider>
-    );
+    await act(async () => {
+      render(
+        <PaperProvider>
+          <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+        </PaperProvider>
+      );
+    });
 
-    expect(screen.getByText('090-1234-5678')).toBeVisible();
-    
-    expect(screen.getByText('これはテスト用の文字起こしです。')).toBeVisible();
-    
-    expect(screen.getByText('テスト用の要約文です。')).toBeVisible();
-    
-    expect(screen.getByText('通話録音')).toBeVisible();
+    await waitFor(() => {
+      expect(screen.getByText('090-1234-5678')).toBeVisible();
+      expect(screen.getByText('これはテスト用の文字起こしです。')).toBeVisible();
+      expect(screen.getByText('テスト用の要約文です。')).toBeVisible();
+      expect(screen.getByText('通話録音')).toBeVisible();
+    });
   });
 });
