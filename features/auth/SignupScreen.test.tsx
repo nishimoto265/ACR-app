@@ -1,6 +1,3 @@
-import React from 'react';
-import { useAuth } from '../../hooks/useAuth';
-
 // Mock the useAuth hook
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: jest.fn(),
