@@ -1,24 +1,46 @@
+import React from 'react';
+import { render, act } from '@testing-library/react-native';
+import { PaperProvider } from 'react-native-paper';
+import SignupScreen from './SignupScreen';
+import { useAuth } from '../../hooks/useAuth';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../navigation/AuthNavigator';
+
 // Mock the useAuth hook
 jest.mock('../../hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
-/**
- * IMPORTANT: This test suite has been temporarily disabled due to persistent
- * Jest environment tear-down errors that could not be resolved after multiple attempts.
- * 
- * The errors appear to be related to React Native's animation system (Easing.js)
- * and occur even with minimal test implementations.
- * 
- * Approaches tried:
- * 1. Skipping async tests
- * 2. Removing timer-related code
- * 3. Completely rewriting the test file to be as simple as possible
- * 
- * This is a temporary solution until the root cause can be addressed.
- */
-describe.skip('SignupScreen', () => {
-  it('placeholder test to keep Jest happy', () => {
-    expect(true).toBe(true);
+type SignupScreenProps = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
+
+const mockNavigation = {
+  navigate: jest.fn(),
+} as unknown as SignupScreenProps['navigation'];
+
+const mockRoute = {
+  key: 'Signup',
+  name: 'Signup',
+} as SignupScreenProps['route'];
+
+describe('SignupScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Mock the useAuth hook return value
+    (useAuth as jest.Mock).mockReturnValue({
+      signUp: jest.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  it('renders correctly', async () => {
+    await act(async () => {
+      const { getByText } = render(
+        <PaperProvider>
+          <SignupScreen navigation={mockNavigation} route={mockRoute} />
+        </PaperProvider>
+      );
+      
+      expect(getByText('アカウント作成')).toBeTruthy();
+    });
   });
 });
