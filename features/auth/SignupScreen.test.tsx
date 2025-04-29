@@ -11,8 +11,10 @@ jest.mock('../../hooks/useAuth', () => ({
   useAuth: jest.fn(),
 }));
 
+// Define types for props
 type SignupScreenProps = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
+// Mock navigation and route
 const mockNavigation = {
   navigate: jest.fn(),
 } as unknown as SignupScreenProps['navigation'];
@@ -25,7 +27,7 @@ const mockRoute = {
 /**
  * Minimal test suite for SignupScreen
  * 
- * Note: Most tests have been simplified due to persistent Jest environment 
+ * Note: Most tests have been removed due to persistent Jest environment 
  * tear-down errors in CI. Only the most basic rendering test is included.
  * This is a temporary solution until the root cause of the environment
  * tear-down issues can be addressed.
@@ -40,13 +42,15 @@ describe('SignupScreen', () => {
     });
   });
 
+  // Single basic test that doesn't use screen queries or fireEvent
   it('renders without crashing', () => {
-    const { unmount } = render(
+    const { getByText } = render(
       <PaperProvider>
         <SignupScreen navigation={mockNavigation} route={mockRoute} />
       </PaperProvider>
     );
     
-    unmount();
+    // Simple assertion that doesn't trigger state updates
+    expect(getByText('アカウント作成')).toBeTruthy();
   });
 });

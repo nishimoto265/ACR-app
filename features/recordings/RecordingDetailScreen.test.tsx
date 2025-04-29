@@ -23,7 +23,7 @@ const mockNavigation = {
 /**
  * Minimal test suite for RecordingDetailScreen
  * 
- * Note: Most tests have been simplified due to persistent React Native Testing Library
+ * Note: Most tests have been removed due to persistent React Native Testing Library
  * configuration issues in CI. Only the most basic rendering test is included.
  * This is a temporary solution until the root cause of the test renderer
  * unmounting issues can be addressed.
