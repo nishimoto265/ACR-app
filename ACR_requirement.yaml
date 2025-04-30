@@ -1,0 +1,131 @@
+project:
+  name: ReactNativeCallRecorderViewer
+  description: |
+    Cloud Run＋Firestore＋Firebase Storage に保存された通話録音データを
+    React Native アプリで一覧表示・再生・文字起こし・要約閲覧できるようにする。
+  target_platforms:
+    - Android (API 21+)
+    - iOS (12+)
+  target_users:
+    - call_center_agents
+    - sales_representatives
+
+scope:
+  include:
+    - Firebase Authentication によるログイン
+    - 録音一覧の取得・表示
+    - 詳細画面での再生、文字起こし全文、要約表示
+    - オフラインキャッシュ (直近 20 件)
+  exclude:
+    - 録音ファイルのアップロード・取得機能
+    - 通話録音 API の実装
+    - 管理者向けデータ編集・削除機能
+
+functional_requirements:
+  auth:
+    provider: Firebase Authentication
+    methods:
+      - anonymous
+      - email_password
+    flow:
+      - 未認証: サインイン画面へリダイレクト
+      - 認証済: ホーム画面へ遷移
+
+  home_screen:
+    data_source:
+      collection: recordings
+      order_by: recordedAt desc
+      limit: 20
+    display_fields:
+      - recordedAt (YYYY/MM/DD HH:mm)
+      - phoneNumber
+      - summary_preview
+    pull_to_refresh: true
+
+  detail_screen:
+    display:
+      - header: phoneNumber, recordedAt
+      - audio_player: streaming playback, seek bar
+      - transcript: scrollable full text
+      - summary: full text
+    error_handling:
+      - offline: cache 再生
+
+  settings_screen:
+    features:
+      - logout_button
+      - clear_cache_button
+      - app_version_display
+
+non_functional_requirements:
+  performance:
+    home_load_time: '<= 2s'
+    detail_playback_start: '<= 1s'
+  offline_support:
+    cache_limit: 20
+  accessibility:
+    high_contrast: true
+    font_scaling: true
+  testing:
+    unit_coverage: '>= 70%'
+    e2e: Detox or Appium
+  security:
+    transport_layer_security: true
+    firestore_rules: request.auth != null
+    storage_rules: request.auth != null
+  ci_cd:
+    - GitHub Actions: lint, unit tests
+    - Expo EAS or Fastlane: build & release
+
+tech_stack:
+  framework: React Native 0.71+
+  language: TypeScript
+  ui_libraries:
+    - React Native Paper
+    - React Native Elements
+  navigation: React Navigation v6
+  state_management:
+    - Recoil
+    - React Query
+  network: Firebase SDK (Auth, Firestore, Storage)
+  audio: 
+    - Expo AV
+    - react-native-track-player (optional)
+  logging: Sentry RN SDK
+  testing:
+    - Jest
+    - Detox
+
+architecture:
+  pattern: MVVM-like
+  layers:
+    - features -> hooks -> components
+    - services: Firebase SDK 呼び出し集中管理
+  directory_structure:
+    components: 汎用コンポーネント
+    features:
+      auth: 認証画面ロジック・UI
+      recordings: 一覧・詳細ロジック・UI
+      settings: 設定画面
+    hooks: カスタムフック (useAuth, useRecordings)
+    services: firebase 初期化 & API ラッパー
+    navigation: React Navigation 設定
+    store: Recoil / React Query 設定
+    utils: 日付フォーマット、エラーハンドラ
+    App.tsx: ルートエントリ
+
+ci_cd_pipeline:
+  on_pull_request:
+    - lint (ESLint, Prettier)
+    - unit_tests (Jest)
+  on_merge_main:
+    - e2e_tests (Detox)
+    - build_alpha (Expo EAS)
+  on_release_tag:
+    - release_build (Fastlane)
+
+future_enhancements:
+  - push_notifications for new recordings
+  - full_text_search of transcripts and summaries
+  - user_scoped_filters
+  - analytics_dashboard and reports
