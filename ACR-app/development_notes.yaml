@@ -1,0 +1,76 @@
+# 開発ノートとベストプラクティス
+
+## テスト (Jest)
+
+### コンポーネントのモック (`jest.setup.ts`):
+- **分離:** `react-native` と他のライブラリ (例: `react-native-paper`) のモックは、競合を避けるために別々の `jest.mock()` 呼び出しで行う。
+- **モック実装の詳細:**
+    - テストが要求する構造に注意する。例えば、`MockButton` は children を `<Text>` でラップする必要があった。
+    - インタラクティブなコンポーネント (例: `TextInput`) のモックは、動作を正しくシミュレートするために内部状態 (`React.useState`) が必要になる場合がある (`MockTextInputComponent`)。
+- **依存関係:** モックコンポーネントが、テスト対象コンポーネントから渡されるプロパティ (例: `onChangeText`, `value`) を正しく処理することを確認する。
+
+### ライブラリ固有のモック:
+- **`expo-av` (`Audio.Sound`):**
+    - `Audio.Sound.createAsync` をモックして、サウンドオブジェクトと初期ステータスを返す。
+    - `MockSound` クラスを作成し、`playAsync`, `pauseAsync`, `setPositionAsync`, `unloadAsync`, `setOnPlaybackStatusUpdate` などのメソッドを `jest.fn()` でモック化する。
+    - `setOnPlaybackStatusUpdate` に渡されたコールバック関数を取得するには、スパイ (`jest.SpyInstance`) の `.mock.calls[0][0]` を使用する。
+- **メソッド呼び出しの検証:**
+    - `jest.spyOn` を使用して、モックオブジェクトの特定のメソッドが期待通りに呼び出されたか（回数、引数など）を確認する。
+- **非同期処理のテスト:**
+    - 音声読み込みやステータス更新などの非同期操作を含むコンポーネントのテストでは、`waitFor` を使用して非同期処理の完了とそれに伴うUIの更新を待つ。
+    - 状態を更新する非同期コールバックやイベントハンドラ内の処理は `act(...)` でラップする。
+- **UIインタラクション:**
+    - `fireEvent` (例: `fireEvent.press`, `fireEvent.valueChange`) を使用してユーザーインタラクションをシミュレートし、`waitFor` を使って期待される状態変化やメソッド呼び出しを確認する。
+
+## リンティング (ESLint) / TypeScript
+
+### `@typescript-eslint/no-explicit-any` の扱い:
+- **必要性:** 複雑なモック（特に外部ライブラリの型）や型相互作用においては、`any` の使用が一時的に避けられない場合がある。
+    - 例: React Navigation の `route` や `navigation` プロップスのモック。
+- **ルールの無効化:** ESLint の無効化コメント (`// eslint-disable-next-line`, `/* eslint-disable-next-line */`, `// eslint-disable-line`) は、限定的かつ正確に使用し、可能であれば将来的に型を修正するための TODO コメントを残す。
+- **エラー箇所:** ESLint のエラー行/列番号は誤解を招く可能性があることに注意する。エラーは、単純な型注釈だけでなく、インデックスシグネチャ (`[key: string]: any`) や `any` の間接的な使用箇所を指している可能性がある。エラーを引き起こしている正確な箇所を確認する。
+- **Jest スパイの型:**
+    - `jest.spyOn` で作成したスパイに対して TypeScript が型を正しく推論できない場合がある。
+    - そのような場合は、`as unknown as jest.SpyInstance` のように明示的なキャストを行うことで型エラーを解決できる。
+
+## 一般的なワークフロー
+
+- **両方を確認:** 変更を加えた後は、コードをコミットまたはプッシュする前に、**必ず** テスト (`npm test`) とリント (`npm run lint`) の両方を実行し、すべてがパスすることを確認する。これは、設定ファイル (`jest.setup.ts`, `jest.config.js`, `.eslintrc.js` など) を変更する場合に特に重要である。
+
+## Backend / Deployment (Cloud Run & Firebase)
+
+### Firebase Project Consolidation:
+- **Single Project:** アプリケーションの Firestore と Storage は `nodal-alcove-457508-h6` プロジェクトに統合された。
+- **Backend (`main.py`):
+    - `FIREBASE_SA_KEY_JSON` (Secret Manager) を使用して、Firestore クライアントと Firebase Admin SDK を新しいプロジェクトで初期化するように更新。
+    - Firestore への保存時に Google Drive の `fileId` をドキュメント ID として使用し、`set()` メソッドで書き込むことで重複登録を防止するように変更。
+- **Frontend (`services/firebase.ts`):** 新しいプロジェクト (`nodal-alcove-457508-h6`) の設定のみを使用するように更新済み。
+- **Data Migration:** 旧プロジェクト (`acr-project-247b4`) から新プロジェクトへのデータ移行が必要（Storage のファイル、Firestore のデータ）。
+
+### AI Model Integration:
+- **Summarization:** LangChain を使用した要約モデルを OpenAI `gpt-4o-mini` から Google `gemini-1.5-flash-latest` に変更。
+    - これに伴い、`GOOGLE_API_KEY` (環境変数または Secret Manager) が必要になった。
+- **Transcription:** 引き続き OpenAI Whisper を使用するため、`OPENAI_API_KEY` (Secret Manager) が必要。
+
+### Cloud Run Deployment (`gcloud run deploy`):
+- **Environment Variables:** `FOLDER_ID`, `STORAGE_BUCKET` (新しいバケット名に更新), `GOOGLE_API_KEY` を `--update-env-vars` で設定。
+- **Secrets:** `DRIVE_SA_KEY_JSON`, `FIREBASE_SA_KEY_JSON`, `OPENAI_API_KEY` を Secret Manager で管理し、`--update-secrets` で参照。
+- **Service Account:** `acr-runner@nodal-alcove-457508-h6.iam.gserviceaccount.com` を使用。
+- **Library Dependencies:** コンテナイメージには `langchain-google-genai` ライブラリを含める必要がある。
+
+## Expo Development / Debugging
+
+### Connecting via Tunnel (`npx expo start --tunnel`):
+- **`@expo/ngrok` Dependency:**
+    - Tunnel モードには `@expo/ngrok` が必要。
+    - グローバルインストール (`npm install -g @expo/ngrok`) がプロンプトで提案されるが、権限やパスの問題で失敗することがある (exit code 243)。
+    - **解決策:** プロジェクトの `devDependencies` としてインストールする (`npm install --save-dev @expo/ngrok`)。これにより、Expo CLI がプロジェクト内のバージョンを使用するようになる。
+- **"Unable to load script" Error (on Device):**
+    - スマートフォンアプリが Metro Bundler に接続できたものの、JavaScript バンドルをロードできない場合に発生する。
+    - **トラブルシューティング:**
+        1. PC の Metro Bundler ターミナルでエラーが出ていないか確認する。
+        2. スマートフォンアプリの「Reload」ボタンを試す。
+        3. PC で Metro Bundler を再起動し、スマートフォンアプリも完全に終了してから再接続する。
+- **`TypeError: Invalid character in header content ["X-React-Native-Project-Root"]` (in Metro Terminal):**
+    - Metro が HTTP ヘッダーを設定する際に、プロジェクトのパスに非 ASCII 文字 (例: 日本語) が含まれていると発生する。
+    - **解決策:** プロジェクトディレクトリ全体を、パス名に ASCII 文字のみを含む場所 (例: `/home/user/Projects/MyApp`) に移動する。コマンド実行前に必ず `cd` で移動先のディレクトリに入る。

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "148163978225",
+    "project_id": "nodal-alcove-457508-h6",
+    "storage_bucket": "nodal-alcove-457508-h6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:148163978225:android:438b19f0a2583d76ff9a50",
+        "android_client_info": {
+          "package_name": "com.thithilab.acr"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCrMwv6SdFbxaMK6mOsFYrLtcxt3io6OOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
