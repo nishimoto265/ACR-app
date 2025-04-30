@@ -39,56 +39,6 @@ jest.mock('react-native-svg', () => {
   };
 });
 
-jest.mock('expo-av', () => {
-  const mockSound = {
-    unloadAsync: jest.fn().mockResolvedValue(undefined),
-    playAsync: jest.fn().mockResolvedValue(undefined),
-    pauseAsync: jest.fn().mockResolvedValue(undefined),
-    setPositionAsync: jest.fn().mockResolvedValue(undefined),
-    getStatusAsync: jest.fn().mockResolvedValue({
-      isLoaded: true,
-      durationMillis: 60000,
-      positionMillis: 0,
-      isPlaying: false,
-    }),
-  };
-
-  return {
-    Audio: {
-      Sound: {
-        createAsync: jest.fn().mockImplementation((source, options, callback) => {
-          // Immediately invoke the callback if provided
-          if (callback && typeof callback === 'function') {
-            const status = {
-              isLoaded: true,
-              durationMillis: 60000,
-              positionMillis: 0,
-              isPlaying: false,
-            };
-            setTimeout(() => callback(status), 0);
-          }
-          
-          return Promise.resolve({
-            sound: mockSound,
-            status: {
-              isLoaded: true,
-              durationMillis: 60000,
-              positionMillis: 0,
-              isPlaying: false,
-            },
-          });
-        }),
-      },
-    },
-    AVPlaybackStatus: {
-      isLoaded: true,
-      durationMillis: 60000,
-      positionMillis: 0,
-      isPlaying: false,
-    },
-  };
-});
-
 // react-native-reanimated のモックを追加（シンプル化）
 jest.mock('react-native-reanimated', () => {
   return {

@@ -1,525 +1,351 @@
-import React from "react";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react-native";
-import RecordingDetailScreen from "./RecordingDetailScreen";
-import { Recording } from "../../services/recordings";
-import { Audio, AVPlaybackStatus } from "expo-av";
-import { UseQueryResult } from 'react-query';
-import { formatDate } from "../../utils/dateFormatter";
-import { RouteProp } from '@react-navigation/native'; 
-import { NativeStackNavigationProp } from '@react-navigation/native-stack'; 
-import type { RecordingsStackParamList } from '../../navigation/MainNavigator'; // Import the correct type
+import React from 'react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { NavigationRoute } from '@react-navigation/native'; 
+import { QueryClient, QueryClientProvider, UseQueryResult, QueryObserverResult } from '@tanstack/react-query';
+import { Audio, AVPlaybackStatusSuccess } from 'expo-av';
 
-// --- Mocks ---
-// Use fake timers for advancing time
-// Temporarily disable fake timers for debugging
-// jest.useFakeTimers();
+// Mock expo-av FIRST
+jest.mock('expo-av');
 
-// Helper to create a mock UseQueryResult object for react-query v3
-type MockQueryOptions = {
-  status: 'loading' | 'success' | 'error' | 'idle';
-  data?: Recording;
-  error?: unknown;
+import RecordingDetailScreen from './RecordingDetailScreen'; 
+// Define specific mock types instead of using 'any'
+// TODO: Revert to specific types or import actual types when resolving navigation type issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RecordingsStackParamList = any;
+// type RecordingsStackParamList = {
+//   RecordingDetail: { recordingId: string };
+// };
+type Recording = {
+  id: string;
+  name: string;
+  audioUrl: string;
+  durationMillis: number;
+  recordedAt: string;
+  isSynced: boolean;
+  transcriptionStatus: string;
+};
+import { useRecording } from '../../hooks/useRecordings'; 
+import { MOCK_DURATION_MILLIS, mockInitialSuccessStatus, MockSound } from '../../__mocks__/expo-av'; 
+
+type TanstackQueryStatus = 'pending' | 'error' | 'success';
+
+// Mock the custom hook
+jest.mock('../../hooks/useRecordings', () => ({ 
+  useRecording: jest.fn(), 
+}));
+
+// Mock navigation props - Add missing core methods required by the type
+// TODO: Revert to specific type when resolving navigation type issues
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockNavigationProp = any; // NativeStackNavigationProp<RecordingsStackParamList, 'RecordingDetail'>;
+
+const mockNavigate = jest.fn();
+const mockGoBack = jest.fn();
+const mockSetParams = jest.fn();
+const mockDispatch = jest.fn();
+const mockSetOptions = jest.fn(); 
+const mockReset = jest.fn();
+// Add other functions if required by tests or component, otherwise jest.fn() suffices for type compliance
+
+const mockNavigation: MockNavigationProp = {
+  navigate: mockNavigate,
+  goBack: mockGoBack,
+  setParams: mockSetParams,
+  dispatch: mockDispatch,
+  setOptions: mockSetOptions,
+  reset: mockReset,
+  isFocused: jest.fn(() => true),
+  canGoBack: jest.fn(() => true),
+  getParent: jest.fn(),
+  getState: jest.fn(() => ({
+      key: 'stack-key',
+      index: 0,
+      routeNames: ['RecordingDetail'] as (keyof RecordingsStackParamList)[],
+      routes: [
+          { key: 'RecordingDetail-key', name: 'RecordingDetail', params: { recordingId: 'test-id-1' } }
+      ] as NavigationRoute<RecordingsStackParamList, 'RecordingDetail'>[],
+      type: 'stack',
+      stale: false,
+      history: [], 
+      preloadedRoutes: [] as NavigationRoute<RecordingsStackParamList, keyof RecordingsStackParamList>[],
+  })),
+  addListener: jest.fn(() => jest.fn()), 
+  removeListener: jest.fn(),
+  replace: jest.fn(),
+  push: jest.fn(),
+  pop: jest.fn(),
+  popToTop: jest.fn(),
+  popTo: jest.fn(), 
+  getId: jest.fn(),
+  navigateDeprecated: jest.fn(),
+  preload: jest.fn(),
+  setStateForNextRouteNamesChange: jest.fn(),
 };
 
-const createMockQueryResult = ({ 
-  status, 
-  data, 
-  error 
-}: MockQueryOptions): UseQueryResult<Recording, unknown> => {
-  const baseResult = {
-    dataUpdatedAt: Date.now(),
-    errorUpdatedAt: status === 'error' ? Date.now() : 0,
-    errorUpdateCount: 0, // Add missing property required by UseQueryResult subtypes
-    failureCount: status === 'error' ? 1 : 0,
-    isFetched: status !== 'loading',
-    isFetchedAfterMount: status !== 'loading',
-    isFetching: status === 'loading',
-    isPlaceholderData: false,
-    isPreviousData: false,
-    isRefetching: false,
+// Helper to create mock query results matching discriminated union
+const createMockQueryResult = (
+  status: TanstackQueryStatus,
+  data?: Recording | null,
+  error?: Error | null
+): UseQueryResult<Recording | null, Error> => {
+  const baseResult: Omit<QueryObserverResult<Recording | null, Error>, 'status' | 'data' | 'error' | 'remove' | 'promise'> = {
+    isFetching: false,
+    isFetched: true,
     isStale: false,
-    refetch: jest.fn().mockResolvedValue(undefined),
-    remove: jest.fn(),
+    isLoading: false,
+    isSuccess: false,
+    isError: false,
+    isInitialLoading: false,
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetchedAfterMount: true,
+    isLoadingError: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isRefetchError: false,
+    isRefetching: false,
+    refetch: jest.fn(),
+    fetchStatus: 'idle',
+    isPending: false,
   };
 
   switch (status) {
-    case 'loading':
+    case 'pending':
       return {
         ...baseResult,
-        status: 'loading',
+        status: 'pending',
+        fetchStatus: 'fetching',
         data: undefined,
         error: null,
-        isError: false,
-        isIdle: false,
         isLoading: true,
-        isLoadingError: false,
-        isRefetchError: false,
+        isPending: true,
+        isInitialLoading: true,
         isSuccess: false,
-      };
+        isError: false,
+        isFetched: false,
+        isFetchedAfterMount: false,
+        promise: new Promise(() => {}),
+      } as UseQueryResult<Recording | null, Error>; 
     case 'success':
       return {
         ...baseResult,
         status: 'success',
-        data: data ?? ({ id: 'default-success-id' } as Recording), // Provide default data if needed
+        fetchStatus: 'idle',
+        data: data === undefined ? null : data,
         error: null,
-        isError: false,
-        isIdle: false,
         isLoading: false,
-        isLoadingError: false,
-        isRefetchError: false,
+        isPending: false,
+        isInitialLoading: false,
         isSuccess: true,
-      };
+        isError: false,
+        dataUpdatedAt: Date.now(),
+        promise: Promise.resolve(data === undefined ? null : data),
+      } as UseQueryResult<Recording | null, Error>; 
     case 'error':
+      const finalError = error || new Error('Mock Query Error');
       return {
         ...baseResult,
         status: 'error',
+        fetchStatus: 'idle',
         data: undefined,
-        error: error ?? new Error('Mock query error'), // Provide default error
+        error: finalError,
+        isLoading: false,
+        isPending: false,
+        isInitialLoading: false,
+        isSuccess: false,
         isError: true,
-        isIdle: false,
-        isLoading: false,
-        isLoadingError: true,
-        isRefetchError: false,
-        isSuccess: false,
-      };
-    case 'idle':
+        errorUpdatedAt: Date.now(),
+        failureCount: 1,
+        failureReason: finalError,
+        isLoadingError: true, 
+        // Return a resolved promise instead of rejected to avoid potential unhandled rejections
+        promise: Promise.resolve(null),
+      } as UseQueryResult<Recording | null, Error>; 
     default:
-      return {
-        ...baseResult,
-        status: 'idle',
-        data: undefined,
-        error: null,
-        isError: false,
-        isIdle: true,
-        isLoading: false,
-        isLoadingError: false,
-        isRefetchError: false,
-        isSuccess: false,
-      };
+      throw new Error(`Unhandled status: ${status}`);
   }
 };
 
-// Helper to wait for audio loading state to resolve
-// Increased default timeout and added logging
-async function waitForAudioLoad(timeout = 5000) { // Increased default timeout
-  try {
-    await waitFor(
-      async () => {
-        // Use queryByRole for the button, keep queryByTestId for error
-        const playPauseButton = screen.queryByRole('button', { name: /play|pause/i });
-        const errorText = screen.queryByTestId("audio-error-text");
-        // Debug: Log screen contents on each check
-        screen.debug(); 
-        // Use expect directly; waitFor retries until this passes or times out.
-        expect(playPauseButton || errorText).toBeTruthy();
-      },
-      { timeout: timeout } // Pass the timeout option
-    );
-  } catch (error) {
-    // This catch block might not be reliably hit, hence screen.debug() moved inside callback
-    throw error; // Re-throw the timeout error
-  }
-}
+// Mock Recording Data (using defined Recording type)
+const mockRecording: Recording = {
+  id: 'test-id-1',
+  name: 'Test Recording 1',
+  audioUrl: 'file:///test/recording1.mp3',
+  durationMillis: MOCK_DURATION_MILLIS, 
+  recordedAt: new Date().toISOString(),
+  isSynced: false,
+  transcriptionStatus: 'pending',
+};
 
-// Helper to render the component with default mocks
-const renderComponent = (recordingId = 'default-id') => { 
-  // Properly type the mockRoute using RecordingsStackParamList
-  const mockRoute: RouteProp<RecordingsStackParamList, 'RecordingDetail'> = {
-    key: 'RecordingDetail-key',
-    name: 'RecordingDetail',
-    params: { recordingId }, // Use the passed recordingId
-  };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockRoute: any /* RouteProp<RecordingsStackParamList, 'RecordingDetail'> */ = {
+  key: 'RecordingDetail-key',
+  name: 'RecordingDetail',
+  params: {
+    recordingId: mockRecording.id,
+  },
+};
 
-  // Properly type the mockNavigation using RecordingsStackParamList
-  const mockNavigation: Partial<NativeStackNavigationProp<RecordingsStackParamList, 'RecordingDetail'>> = {
-    navigate: jest.fn(),
-    // Add other navigation functions if the component uses them
-  };
+// Query Client for Tests
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false, 
+    },
+  },
+});
 
+// Helper function to render the component with providers
+const renderComponent = (mockQueryResult: UseQueryResult<Recording | null, Error>) => {
+  (useRecording as jest.Mock).mockReturnValue(mockQueryResult); 
   return render(
-    // Pass navigation and route props correctly
-    <RecordingDetailScreen 
-      route={mockRoute} 
-      navigation={mockNavigation as NativeStackNavigationProp<RecordingsStackParamList, 'RecordingDetail'>} // Cast needed because we use Partial
-    />
+    <QueryClientProvider client={queryClient}>
+      <RecordingDetailScreen route={mockRoute} navigation={mockNavigation} />
+    </QueryClientProvider>
   );
 };
 
-// --- Mock Setup ---
-// Mocking the hooks and modules
-jest.mock("../../hooks/useRecordings", () => {
-  const internalMockUseRecording = jest.fn(); // Define mock INSIDE factory
-  return {
-    __esModule: true, // Important for ES Modules
-    useRecordings: jest.fn(),
-    useRecording: internalMockUseRecording, // Use the internal mock
-    useSearchRecordings: jest.fn(),
-    __INTERNAL_MOCK_useRecording: internalMockUseRecording, // Export the internal mock
-  };
+describe('RecordingDetailScreen', () => {
+  let mockSound: MockSound;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    // Instantiate the MockSound class
+    mockSound = new MockSound(mockInitialSuccessStatus);
+
+    // Spy on methods if needed for specific call assertions
+    jest.spyOn(mockSound, 'playAsync'); 
+    jest.spyOn(mockSound, 'pauseAsync'); 
+    jest.spyOn(mockSound, 'setPositionAsync'); 
+    jest.spyOn(mockSound, 'unloadAsync');
+    jest.spyOn(mockSound, 'setOnPlaybackStatusUpdate'); 
+
+    // Mock the static Audio.Sound.createAsync method to return the instance
+    (Audio.Sound.createAsync as jest.Mock).mockResolvedValue({
+      sound: mockSound,
+      status: mockInitialSuccessStatus,
+    });
+
+    (Audio.setAudioModeAsync as jest.Mock).mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    queryClient.clear();
+  });
+
+  it('renders loading state initially', async () => {
+    renderComponent(createMockQueryResult('pending'));
+    expect(screen.getByText('データを読み込み中...')).toBeTruthy();
+  });
+
+  it('renders error state', async () => {
+    const error = new Error('Failed to fetch recording');
+    renderComponent(createMockQueryResult('error', null, error));
+    expect(await screen.findByText('データの読み込みに失敗しました。')).toBeTruthy();
+    expect(await screen.findByText('再試行')).toBeTruthy();
+  });
+
+  it('displays recording details when data is loaded', async () => {
+    renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => expect(Audio.Sound.createAsync).toHaveBeenCalled());
+    expect(screen.getByTestId('total-duration-display').props.children).toEqual([' / ', '0:10']);
+    expect(screen.getByLabelText(/play/i)).toBeTruthy();
+  });
+
+  it('loads audio on mount if recording data is available', async () => {
+    renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => {
+      expect(Audio.Sound.createAsync).toHaveBeenCalledWith(
+        { uri: mockRecording.audioUrl },
+        { shouldPlay: false, progressUpdateIntervalMillis: 500 }
+      );
+    });
+  });
+
+  it('plays and pauses audio when buttons are pressed', async () => {
+    renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => expect(Audio.Sound.createAsync).toHaveBeenCalled());
+    const playButton = screen.getByLabelText(/play/i);
+    expect(playButton).toBeTruthy();
+
+    await act(async () => { fireEvent.press(playButton); });
+    await waitFor(() => expect(mockSound.playAsync).toHaveBeenCalledTimes(1));
+
+    const playingStatus: AVPlaybackStatusSuccess = { ...mockInitialSuccessStatus, isPlaying: true, positionMillis: 500 };
+    act(() => {
+        // Cast explicitly to fix TS error
+        const statusUpdateCallback = (mockSound.setOnPlaybackStatusUpdate as unknown as jest.SpyInstance).mock.calls[0][0];
+        if (statusUpdateCallback) { statusUpdateCallback(playingStatus); }
+    });
+    await waitFor(() => expect(screen.getByLabelText(/pause/i)).toBeTruthy());
+
+    const pauseButton = screen.getByLabelText(/pause/i);
+    await act(async () => { fireEvent.press(pauseButton); });
+    await waitFor(() => expect(mockSound.pauseAsync).toHaveBeenCalledTimes(1));
+
+    const pausedStatus: AVPlaybackStatusSuccess = { ...playingStatus, isPlaying: false };
+    act(() => {
+        // Cast explicitly to fix TS error
+        const statusUpdateCallback = (mockSound.setOnPlaybackStatusUpdate as unknown as jest.SpyInstance).mock.calls[0][0];
+        if (statusUpdateCallback) { statusUpdateCallback(pausedStatus); }
+    });
+    await waitFor(() => expect(screen.getByLabelText(/play/i)).toBeTruthy());
+  });
+
+  it('updates slider and time display during playback', async () => {
+    renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => expect(Audio.Sound.createAsync).toHaveBeenCalled());
+
+    // Get the callback function passed to setOnPlaybackStatusUpdate via the spy
+    // Cast explicitly to fix TS error
+    const statusUpdateCallback = (mockSound.setOnPlaybackStatusUpdate as unknown as jest.SpyInstance).mock.calls[0][0];
+    expect(statusUpdateCallback).toBeDefined();
+
+    const halfwayMillis = MOCK_DURATION_MILLIS / 2;
+    const halfwayStatus: AVPlaybackStatusSuccess = { ...mockInitialSuccessStatus, isLoaded: true, isPlaying: true, positionMillis: halfwayMillis, durationMillis: MOCK_DURATION_MILLIS };
+    act(() => { if (statusUpdateCallback) { statusUpdateCallback(halfwayStatus); } });
+
+    await waitFor(() => {
+        expect(screen.getByTestId('current-time-display').props.children).toBe('0:05');
+        expect(screen.getByTestId('total-duration-display').props.children).toEqual([' / ', '0:10']);
+        const slider = screen.getByTestId('audio-slider');
+        expect(slider.props.value).toBe(MOCK_DURATION_MILLIS / 1000 / 2);
+    });
+  });
+
+  it('seeks audio when slider is moved', async () => {
+    renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => expect(Audio.Sound.createAsync).toHaveBeenCalled());
+    const slider = screen.getByTestId('audio-slider');
+    const seekPositionSeconds = 5;
+
+    // Simulate user sliding and releasing the slider
+    // Note: fireEvent.changeValue might be needed for some slider implementations
+    fireEvent(slider, 'onValueChange', seekPositionSeconds); // Simulate dragging
+    await act(async () => { fireEvent(slider, 'onSlidingComplete', seekPositionSeconds); });
+    await waitFor(() => { expect(mockSound.setPositionAsync).toHaveBeenCalledWith(seekPositionSeconds * 1000); });
+
+    const seekedStatus: AVPlaybackStatusSuccess = { ...mockInitialSuccessStatus, positionMillis: seekPositionSeconds * 1000 }; 
+    act(() => {
+        // Get the callback function passed to setOnPlaybackStatusUpdate via the spy
+        // Cast explicitly to fix TS error
+        const statusUpdateCallback = (mockSound.setOnPlaybackStatusUpdate as unknown as jest.SpyInstance).mock.calls[0][0];
+        if (statusUpdateCallback) { statusUpdateCallback(seekedStatus); }
+    });
+    await waitFor(() => {
+      const currentTimeText = screen.getByTestId('current-time-display').props.children;
+      expect(currentTimeText === '0:05').toBeTruthy();
+    });
+  });
+
+  it('unloads audio on unmount', async () => {
+    const { unmount } = renderComponent(createMockQueryResult('success', mockRecording));
+    await waitFor(() => expect(Audio.Sound.createAsync).toHaveBeenCalled());
+    unmount();
+    await waitFor(() => expect(mockSound.unloadAsync).toHaveBeenCalledTimes(1));
+  });
 });
-
-import * as mockRecordingsHooks from '../../hooks/useRecordings';
-const useRecording = (mockRecordingsHooks as any).__INTERNAL_MOCK_useRecording; // Cast to any to bypass TS error
-
-// --- Mock expo-av (Refactored) ---
-jest.mock("expo-av", () => {
-  let mockCurrentPositionMillis = 0;
-  let mockDurationMillis = 60000; // Default duration
-  let mockIsPlaying = false;
-  let mockCapturedCallback: ((status: AVPlaybackStatus) => void) | null = null;
-
-  const baseMockLoadedStatus = (): AVPlaybackStatus => ({
-    isLoaded: true, // Indicates success status
-    uri: "mock-uri",
-    progressUpdateIntervalMillis: 100,
-    durationMillis: mockDurationMillis,
-    positionMillis: mockCurrentPositionMillis,
-    playableDurationMillis: mockDurationMillis,
-    seekMillisToleranceBefore: 0,
-    seekMillisToleranceAfter: 0,
-    shouldPlay: false,
-    isPlaying: mockIsPlaying,
-    isBuffering: false,
-    rate: 1.0,
-    shouldCorrectPitch: false,
-    volume: 1.0,
-    isMuted: false,
-    isLooping: false,
-    didJustFinish: mockCurrentPositionMillis >= mockDurationMillis,
-    audioPan: 0, // Add missing required property
-  });
-
-  const mockSoundInstanceMethods = {
-    playAsync: jest.fn().mockImplementation(async () => {
-      mockIsPlaying = true;
-      // Simulate callback after state change
-      if (mockCapturedCallback) mockCapturedCallback(baseMockLoadedStatus());
-      return baseMockLoadedStatus();
-    }),
-    pauseAsync: jest.fn().mockImplementation(async () => {
-      mockIsPlaying = false;
-      // Simulate callback after state change
-      if (mockCapturedCallback) mockCapturedCallback(baseMockLoadedStatus());
-      return baseMockLoadedStatus();
-    }),
-    setPositionAsync: jest.fn().mockImplementation(async (positionMillis: number) => {
-      const newPosition = Math.max(0, Math.min(positionMillis, mockDurationMillis));
-      mockCurrentPositionMillis = newPosition;
-      // Simulate callback after state change
-      if (mockCapturedCallback) mockCapturedCallback(baseMockLoadedStatus());
-      return baseMockLoadedStatus();
-    }),
-    getStatusAsync: jest.fn().mockImplementation(async () => {
-      return baseMockLoadedStatus();
-    }),
-    unloadAsync: jest.fn().mockResolvedValue({ isLoaded: false } as AVPlaybackStatus),
-    setOnPlaybackStatusUpdate: jest.fn((cb) => {
-      mockCapturedCallback = cb;
-    }),
-  };
-
-  const mockCreateAsync = jest.fn().mockImplementation(async (source, initialStatus, onPlaybackStatusUpdate) => {
-    // Reset state on create
-    mockCurrentPositionMillis = 0;
-    mockIsPlaying = false;
-    mockCapturedCallback = null; // Reset callback capture
-    if (typeof onPlaybackStatusUpdate === 'function') {
-      mockCapturedCallback = onPlaybackStatusUpdate; // Capture new callback
-    }
-    await Promise.resolve(); // Simulate async loading
-
-    // Simulate the initial status update via the callback
-    if (typeof mockCapturedCallback === 'function') {
-      act(() => {
-        mockCapturedCallback!(baseMockLoadedStatus()); // Add non-null assertion
-      });
-    }
-
-    // Return the mock sound object and the initial status
-    return { sound: mockSoundInstanceMethods, status: baseMockLoadedStatus };
-  });
-
-  const mockUtils = {
-    resetMockState: () => {
-      mockCurrentPositionMillis = 0;
-      mockIsPlaying = false;
-      mockCapturedCallback = null;
-      // Reset mock function calls
-      mockCreateAsync.mockClear();
-      Object.values(mockSoundInstanceMethods).forEach(mockFn => mockFn.mockClear());
-    },
-    getMockSoundInstanceMethods: () => mockSoundInstanceMethods,
-    getCurrentPosition: () => mockCurrentPositionMillis,
-    getIsPlaying: () => mockIsPlaying,
-    setDuration: (duration: number) => { mockDurationMillis = duration; },
-    getCapturedCallback: () => mockCapturedCallback,
-    setCurrentPosition: (pos: number) => { mockCurrentPositionMillis = pos; },
-    setIsPlaying: (playing: boolean) => { mockIsPlaying = playing; }
-  };
-
-  return {
-    __esModule: true, // Needed for ES Modules
-    Audio: {
-      Sound: {
-        createAsync: mockCreateAsync,
-      },
-    },
-    __mockUtils__: mockUtils, // Expose utils
-  };
-});
-
-// --- Test Suites ---
-describe("RecordingDetailScreen", () => {
-  // Restore any spies after each test
-  afterEach(() => {
-    jest.restoreAllMocks();
-    // Ensure fake timers are cleared between tests
-    // try {
-    //   jest.clearAllTimers(); // Clear any pending timers
-    // } catch (e) {
-    //   // Ignore errors if timers weren't used or already cleared
-    // }
-    const { __mockUtils__ } = Audio as any;
-    if (__mockUtils__) {
-      __mockUtils__.resetMockState();
-    }
-  });
-
-  describe("Loading State", () => {
-    test("shows loading indicator when data is loading", () => {
-      useRecording.mockReturnValue(createMockQueryResult({ status: 'loading' }));
-      renderComponent('default-id'); // Pass ID for consistency
-      expect(screen.getByText("データを読み込み中...")).toBeTruthy();
-    });
-  });
-
-  describe("Data Display", () => {
-    test("renders recording details when data is loaded", () => {
-      const mockAudioRecording = {
-        id: "test-id-audio",
-        phoneNumber: "090-5555-5555",
-        recordedAt: new Date(),
-        duration: 120,
-        audioUrl: "https://example.com/real-audio.mp3", // Ensure URL is present
-        transcript: "Audio player tests",
-        summary: "Testing play, pause, seek",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      useRecording.mockReturnValue(createMockQueryResult({ status: 'success', data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-      expect(screen.getByText(mockAudioRecording.phoneNumber)).toBeTruthy();
-      // Use the actual formatter used by the component
-      expect(screen.getByText(formatDate(mockAudioRecording.recordedAt))).toBeTruthy();
-      expect(screen.getByText("Audio player tests")).toBeTruthy(); // Transcript
-      expect(screen.getByText("Testing play, pause, seek")).toBeTruthy(); // Summary
-    });
-  });
-
-  describe("Error State", () => {
-    test("shows error message when data loading fails", () => {
-      useRecording.mockReturnValue(createMockQueryResult({ status: 'error', error: new Error('Failed to load') }));
-      renderComponent('default-id');
-      expect(screen.getByText("データの読み込みに失敗しました。")).toBeTruthy();
-    });
-
-    test("shows audio loading error message when audio fails to load", async () => {
-      // Provide valid recording data initially (success state for useRecording)
-      const mockAudioRecording = {
-        id: "test-id-audio",
-        phoneNumber: "090-5555-5555",
-        recordedAt: new Date(),
-        duration: 120,
-        audioUrl: "https://example.com/real-audio.mp3", // Ensure URL is present
-        transcript: "Audio player tests",
-        summary: "Testing play, pause, seek",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      useRecording.mockReturnValue(createMockQueryResult({ status: 'success', data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-
-      // Wait for the error message to appear
-      const errorMessage = await screen.findByText("音声ファイルの読み込みに失敗しました", {}, { timeout: 5000 });
-      expect(errorMessage).toBeTruthy();
-    });
-  });
-
-  describe("Audio Player", () => {
-    // Increase timeout for this specific suite due to async operations
-    jest.setTimeout(60000);
-
-    // Reset the shared mock instance and configure mocks before each test
-    beforeEach(async () => {
-      const { __mockUtils__ } = Audio as any;
-      if (__mockUtils__) {
-        __mockUtils__.resetMockState();
-      }
-    });
-
-    const mockAudioRecording = {
-      id: "test-id-audio",
-      phoneNumber: "090-5555-5555",
-      recordedAt: new Date(),
-      duration: 120,
-      audioUrl: "https://example.com/real-audio.mp3", // Ensure URL is present
-      transcript: "Audio player tests",
-      summary: "Testing play, pause, seek",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    test("renders audio player controls when audio recording data is loaded", async () => {
-      // Arrange: Mock successful data fetch with audio URL
-      useRecording.mockReturnValue(createMockQueryResult({ status: 'success', data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-
-      // Act: Wait for potential state updates after render
-      // await act(async () => {
-      //   jest.advanceTimersByTime(100); // Remove as fake timers are disabled
-      // });
-
-      // Wait for audio loading to complete
-      await waitForAudioLoad();
-
-      // Assert: Check initial state
-      expect(screen.getByRole('button', { name: 'play' })).toBeTruthy(); // Corrected label
-      expect(screen.queryByRole('button', { name: 'pause' })).toBeNull(); // Corrected label
-    });
-
-    test("toggles play/pause state correctly", async () => { 
-      // Arrange: Render component and wait for audio load
-      useRecording.mockReturnValue(createMockQueryResult({ status: "success", data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-      await waitFor(() => expect(screen.getByText("0:00 / 1:00")).toBeTruthy());
-
-      const { __mockUtils__ } = Audio as any;
-      const { getMockSoundInstanceMethods, getCapturedCallback, baseMockLoadedStatus } = __mockUtils__;
-
-      // --- Act: Press Play ---
-      const playButton = screen.getByRole("button", { name: "play" });
-      await act(async () => {
-        fireEvent.press(playButton);
-        // Simulate the initial playing status update
-        if (getCapturedCallback()) {
-          getCapturedCallback()({ ...baseMockLoadedStatus(), isPlaying: true });
-        }
-      });
-
-      // Assert playAsync was called
-      expect(getMockSoundInstanceMethods().playAsync).toHaveBeenCalledTimes(1);
-
-      // Check button changes to pause
-      const pauseButton = await screen.findByRole("button", { name: "pause" });
-      expect(pauseButton).toBeTruthy();
-
-      // --- Act: Press Pause ---
-      await act(async () => {
-        fireEvent.press(pauseButton);
-        // Simulate callback for pause
-        if (getCapturedCallback()) {
-          getCapturedCallback()({ ...baseMockLoadedStatus(), isPlaying: false });
-        }
-      });
-
-      // Assert pauseAsync was called
-      expect(getMockSoundInstanceMethods().pauseAsync).toHaveBeenCalledTimes(1);
-
-      // Check button changes back to play
-      const playButtonAgain = await screen.findByRole("button", { name: "play" });
-      expect(playButtonAgain).toBeTruthy();
-    });
-
-    test("calls setPositionAsync when seek buttons are pressed", async () => {
-      // Arrange
-      useRecording.mockReturnValue(createMockQueryResult({ status: "success", data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-      await waitFor(() => expect(screen.getByText("0:00 / 1:00")).toBeTruthy());
-
-      const { __mockUtils__ } = Audio as any;
-      const { getMockSoundInstanceMethods, getCurrentPosition } = __mockUtils__;
-
-      const rewindButton = screen.getByRole("button", { name: "rewind-10" });
-      const forwardButton = screen.getByRole("button", { name: "fast-forward-10" });
-
-      expect(getMockSoundInstanceMethods().setPositionAsync).not.toBeNull();
-
-      // --- Press Rewind (should not go below 0) ---
-      await act(async () => {
-        fireEvent.press(rewindButton);
-      });
-      // Assert setPositionAsync was called with clamped value
-      // Position starts at 0, rewind 10s -> stays at 0
-      expect(getMockSoundInstanceMethods().setPositionAsync).toHaveBeenCalledWith(0);
-      expect(getCurrentPosition()).toBe(0);
-
-      // --- Press Forward ---
-      await act(async () => {
-        fireEvent.press(forwardButton);
-      });
-      // Position 0, forward 10s -> 10000ms
-      expect(getMockSoundInstanceMethods().setPositionAsync).toHaveBeenCalledWith(10000);
-      // Note: setPositionAsync mock updates the internal position
-      expect(getCurrentPosition()).toBe(10000);
-
-      // --- Press Forward again ---
-      await act(async () => {
-        fireEvent.press(forwardButton);
-      });
-      // Position 10000, forward 10s -> 20000ms
-      expect(getMockSoundInstanceMethods().setPositionAsync).toHaveBeenCalledWith(20000);
-      expect(getCurrentPosition()).toBe(20000);
-
-      // --- Press Rewind ---
-      await act(async () => {
-        fireEvent.press(rewindButton);
-      });
-      // Position 20000, rewind 10s -> 10000ms
-      expect(getMockSoundInstanceMethods().setPositionAsync).toHaveBeenCalledWith(10000);
-      expect(getCurrentPosition()).toBe(10000);
-    });
-
-    test("updates position display during playback", async () => {
-      // Arrange
-      useRecording.mockReturnValue(createMockQueryResult({ status: "success", data: mockAudioRecording as Recording }));
-      renderComponent(mockAudioRecording.id);
-      await waitFor(() => expect(screen.getByText("0:00 / 1:00")).toBeTruthy());
-
-      const { __mockUtils__ } = Audio as any;
-      const { getCapturedCallback, baseMockLoadedStatus } = __mockUtils__;
-
-      // --- Act: Start Playback ---
-      const playButton = screen.getByRole("button", { name: "play" });
-      await act(async () => {
-        fireEvent.press(playButton);
-        // Simulate the initial playing status update
-        if (getCapturedCallback()) {
-          getCapturedCallback()({ ...baseMockLoadedStatus(), isPlaying: true, positionMillis: 0 });
-        }
-      });
-
-      // Simulate playback progress via callback
-      act(() => {
-        if (getCapturedCallback()) {
-          getCapturedCallback()({ ...baseMockLoadedStatus(), isPlaying: true, positionMillis: 15000 });
-        }
-      });
-
-      // Assert position display updates
-      expect(screen.getByText("0:15 / 1:00")).toBeTruthy();
-
-      // Simulate more progress via callback
-      act(() => {
-        if (getCapturedCallback()) {
-          getCapturedCallback()({ ...baseMockLoadedStatus(), isPlaying: true, positionMillis: 30500 });
-        }
-      });
-
-      // Assert position display updates (should round down)
-      expect(screen.getByText("0:30 / 1:00")).toBeTruthy(); // Should round down
-    });
-  }); // End Audio Player describe block
-
-});
-
-// --- Test Setup ---
