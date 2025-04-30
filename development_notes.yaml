@@ -9,12 +9,29 @@
     - インタラクティブなコンポーネント (例: `TextInput`) のモックは、動作を正しくシミュレートするために内部状態 (`React.useState`) が必要になる場合がある (`MockTextInputComponent`)。
 - **依存関係:** モックコンポーネントが、テスト対象コンポーネントから渡されるプロパティ (例: `onChangeText`, `value`) を正しく処理することを確認する。
 
-## リンティング (ESLint)
+### ライブラリ固有のモック:
+- **`expo-av` (`Audio.Sound`):**
+    - `Audio.Sound.createAsync` をモックして、サウンドオブジェクトと初期ステータスを返す。
+    - `MockSound` クラスを作成し、`playAsync`, `pauseAsync`, `setPositionAsync`, `unloadAsync`, `setOnPlaybackStatusUpdate` などのメソッドを `jest.fn()` でモック化する。
+    - `setOnPlaybackStatusUpdate` に渡されたコールバック関数を取得するには、スパイ (`jest.SpyInstance`) の `.mock.calls[0][0]` を使用する。
+- **メソッド呼び出しの検証:**
+    - `jest.spyOn` を使用して、モックオブジェクトの特定のメソッドが期待通りに呼び出されたか（回数、引数など）を確認する。
+- **非同期処理のテスト:**
+    - 音声読み込みやステータス更新などの非同期操作を含むコンポーネントのテストでは、`waitFor` を使用して非同期処理の完了とそれに伴うUIの更新を待つ。
+    - 状態を更新する非同期コールバックやイベントハンドラ内の処理は `act(...)` でラップする。
+- **UIインタラクション:**
+    - `fireEvent` (例: `fireEvent.press`, `fireEvent.valueChange`) を使用してユーザーインタラクションをシミュレートし、`waitFor` を使って期待される状態変化やメソッド呼び出しを確認する。
+
+## リンティング (ESLint) / TypeScript
 
 ### `@typescript-eslint/no-explicit-any` の扱い:
-- **必要性:** 複雑なモックや型相互作用においては、`any` の使用が避けられない場合がある。
-- **ルールの無効化:** ESLint の無効化コメント (`// eslint-disable-next-line`, `/* eslint-disable-next-line */`, `// eslint-disable-line`) は、限定的かつ正確に使用する。
+- **必要性:** 複雑なモック（特に外部ライブラリの型）や型相互作用においては、`any` の使用が一時的に避けられない場合がある。
+    - 例: React Navigation の `route` や `navigation` プロップスのモック。
+- **ルールの無効化:** ESLint の無効化コメント (`// eslint-disable-next-line`, `/* eslint-disable-next-line */`, `// eslint-disable-line`) は、限定的かつ正確に使用し、可能であれば将来的に型を修正するための TODO コメントを残す。
 - **エラー箇所:** ESLint のエラー行/列番号は誤解を招く可能性があることに注意する。エラーは、単純な型注釈だけでなく、インデックスシグネチャ (`[key: string]: any`) や `any` の間接的な使用箇所を指している可能性がある。エラーを引き起こしている正確な箇所を確認する。
+- **Jest スパイの型:**
+    - `jest.spyOn` で作成したスパイに対して TypeScript が型を正しく推論できない場合がある。
+    - そのような場合は、`as unknown as jest.SpyInstance` のように明示的なキャストを行うことで型エラーを解決できる。
 
 ## 一般的なワークフロー
 
