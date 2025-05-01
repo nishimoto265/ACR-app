@@ -11,7 +11,9 @@ import {
   type QueryDocumentSnapshot,
   type Timestamp,
 } from "firebase/firestore"
-import { db, storage } from "./firebase"
+import { db } from "./firebase"
+// Import Timestamp class for instanceof check
+import { Timestamp as FirebaseTimestamp } from "firebase/firestore"
 
 export interface Recording {
   id: string
@@ -26,34 +28,58 @@ export interface Recording {
   createdAt: Timestamp
 }
 
-// Firestoreのタイムスタンプをデータに変換
-const convertTimestamp = (timestamp: Timestamp): Date => {
-  return timestamp.toDate()
+// Firestoreのタイムスタンプをデータに変換 (nullチェック追加)
+const convertTimestamp = (timestamp: unknown): Date | null => {
+  if (timestamp instanceof FirebaseTimestamp) {
+    return timestamp.toDate();
+  }
+  console.warn('Invalid timestamp type received:', timestamp);
+  return null; // Return null if not a valid Timestamp
 }
 
-// Firestoreドキュメントを型付きオブジェクトに変換
-const convertRecording = (doc: QueryDocumentSnapshot<DocumentData>): Recording => {
-  const data = doc.data()
+// Firestoreドキュメントを型付きオブジェクトに変換 (nullチェックと警告追加)
+const convertRecording = (doc: QueryDocumentSnapshot<DocumentData>): Recording | null => {
+  const data = doc.data();
+  const recordedAtDate = convertTimestamp(data.recordedAt);
+  const createdAtTimestamp = data.createdAt instanceof FirebaseTimestamp ? data.createdAt : null;
+
+  if (!recordedAtDate) {
+    console.warn(`Skipping recording ${doc.id} due to invalid 'recordedAt' timestamp.`);
+    return null; // Skip this record if recordedAt is invalid
+  }
+  if (!createdAtTimestamp) {
+    console.warn(`Invalid or missing 'createdAt' timestamp for doc ${doc.id}. Using current server time estimate.`);
+    // createdAtTimestamp = FirebaseTimestamp.now(); // Option: Use server timestamp estimate
+    // For now, we'll allow it but it might cause issues depending on usage.
+    // If createdAt is strictly required, uncomment the line above or return null here too.
+  }
+
   return {
     id: doc.id,
     phoneNumber: data.phoneNumber || "",
-    recordedAt: data.recordedAt ? convertTimestamp(data.recordedAt) : new Date(),
-    duration: data.duration || 0,
+    recordedAt: recordedAtDate, // Use the safely converted date
+    duration: typeof data.duration === 'number' ? data.duration : 0,
     transcript: data.transcript || "",
     summary: data.summary || "",
     fileName: data.fileName || "",
     status: data.status || "",
-    createdAt: data.createdAt,
+    // Use the checked timestamp, or default if it was invalid but allowed
+    createdAt: createdAtTimestamp || FirebaseTimestamp.now(), // Provide a default if null but allowed
+    audioUrl: data.audioUrl || undefined, // Handle potentially missing audioUrl
   }
 }
 
-// 録音一覧を取得
+// 録音一覧を取得 (変換失敗したものを除外)
 export const getRecordings = async (limitCount = 20): Promise<Recording[]> => {
   try {
     const q = query(collection(db, "recordings"), orderBy("recordedAt", "desc"), limit(limitCount))
 
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(convertRecording)
+    // Map documents, filter out nulls (conversion failures)
+    const recordings = querySnapshot.docs
+      .map(convertRecording)
+      .filter((rec): rec is Recording => rec !== null); // Type guard to ensure only valid Recordings remain
+    return recordings;
   } catch (error) {
     console.error("録音一覧の取得に失敗しました:", error)
     throw error
@@ -69,20 +95,23 @@ export const getRecording = async (recordingId: string): Promise<Recording | nul
 
     if (docSnap.exists()) {
       console.log("Document data fetched:", docSnap.data())
-      const data = docSnap.data()
-
-      // Directly use the audioUrl stored in Firestore
-      const audioUrl = data.audioUrl
-      if (!audioUrl) {
-        console.error("Audio URL not found in the document data.")
-        // Returning data without audioUrl might be acceptable depending on UI handling
-        // return { id: docSnap.id, ...data } as Recording;
-        throw new Error("Audio URL not found in Firestore document.")
+      // Convert the single document safely
+      const convertedData = convertRecording(docSnap);
+      if (!convertedData) {
+        console.error(`Failed to convert document data for ID: ${recordingId}`);
+        return null;
       }
-      console.log(`Using audio URL from Firestore: ${audioUrl}`)
 
-      // Return the full recording data including the audioUrl
-      return { id: docSnap.id, ...data, audioUrl } as Recording
+      // Get audio URL (assuming audioUrl is part of the converted data or needs separate handling)
+      // The previous logic for audioUrl seemed a bit complex; let's simplify based on convertRecording
+      const audioUrl = convertedData.audioUrl; // Use the potentially undefined URL from conversion
+      // Optional: If audioUrl is strictly needed, add check here
+      // if (!audioUrl) {
+      //   throw new Error("Audio URL missing after conversion.");
+      // }
+
+      // Return the full recording data including the potentially undefined audioUrl
+      return { ...convertedData, audioUrl }; // Ensure audioUrl is included
 
     } else {
       console.log("No such document!")
@@ -110,7 +139,10 @@ export const searchRecordings = async (searchTerm: string, limitCount = 20): Pro
     )
 
     const phoneQuerySnapshot = await getDocs(phoneQuery)
-    const phoneResults = phoneQuerySnapshot.docs.map(convertRecording)
+    // Map and filter results safely
+    const phoneResults = phoneQuerySnapshot.docs
+      .map(convertRecording)
+      .filter((rec): rec is Recording => rec !== null);
 
     // 要約での検索（完全一致ではなく部分一致）
     // 注意: Firestoreは部分一致検索に対応していないため、実際の実装ではCloud Functionsや

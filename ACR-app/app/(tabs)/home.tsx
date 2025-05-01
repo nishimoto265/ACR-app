@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { View, FlatList, StyleSheet, RefreshControl } from "react-native"
 import { Searchbar, Card, Text, ActivityIndicator, Divider } from "react-native-paper"
 import { useRouter } from 'expo-router';
+// Corrected import paths
 import { useRecordings, useSearchRecordings } from "../../hooks/useRecordings"
 import type { Recording } from "../../services/recordings"
 import { formatDate } from "../../utils/dateFormatter"
@@ -13,26 +14,33 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
 
+  // useRecordings hook provides data, loading states, and refetch function
   const { data: recordings, isLoading, isError, refetch, isRefetching } = useRecordings()
 
+  // useSearchRecordings hook provides search results based on query
   const { data: searchResults, isLoading: isSearchLoading } = useSearchRecordings(searchQuery, 20)
 
+  // Updates search query and state
   const handleSearch = (query: string) => {
     setSearchQuery(query)
     setIsSearching(query.length > 0)
   }
 
+  // Refetches recording data on pull-to-refresh
   const handleRefresh = useCallback(() => {
     refetch()
   }, [refetch])
 
+  // Navigates to the recording detail screen
   const handleRecordingPress = (recordingId: string) => {
     router.push({
-      pathname: "/recording/[id]",
+      // Path relative to the current layout group (tabs)
+      pathname: "/recording/[id]", 
       params: { id: recordingId },
     });
   }
 
+  // Renders individual recording item in the list
   const renderRecordingItem = ({ item }: { item: Recording }) => (
     <Card style={styles.card} onPress={() => handleRecordingPress(item.id)}>
       <Card.Content>
@@ -50,6 +58,7 @@ export default function HomeScreen() {
     </Card>
   )
 
+  // Determine which data and loading state to use based on search status
   const displayData = isSearching ? searchResults : recordings
   const isLoadingData = isLoading || (isSearching && isSearchLoading)
 
@@ -63,17 +72,20 @@ export default function HomeScreen() {
       />
 
       {isLoadingData ? (
+        // Loading indicator
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
           <Text style={styles.loadingText}>データを読み込み中...</Text>
         </View>
       ) : isError ? (
+        // Error message
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>
             データの読み込みに失敗しました。 下にスワイプして再読み込みしてください。
           </Text>
         </View>
       ) : displayData && displayData.length > 0 ? (
+        // Recordings list
         <FlatList
           data={displayData}
           renderItem={renderRecordingItem}
@@ -82,6 +94,7 @@ export default function HomeScreen() {
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} colors={["#2196F3"]} />}
         />
       ) : (
+        // Empty state message
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
             {isSearching ? "検索結果が見つかりませんでした" : "録音データがありません"}
@@ -92,6 +105,7 @@ export default function HomeScreen() {
   )
 }
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,

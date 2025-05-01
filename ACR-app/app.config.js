@@ -31,13 +31,14 @@ export default {
     },
     // --- Firebase config from console --- 
     extra: {
-      // firebaseApiKey: "AIzaSyBkatT5A9CYEE8cBkgXwS9pUCGVvC3AMpM", // REMOVED - Leaked key
-      firebaseAuthDomain: "acr-project-247b4.firebaseapp.com",
-      firebaseProjectId: "acr-project-247b4",
-      firebaseStorageBucket: "acr-project-247b4.firebasestorage.app",
-      firebaseMessagingSenderId: "969226467169",
-      firebaseAppId: "1:969226467169:web:3844dc59a5fad400677720",
-      firebaseMeasurementId: "G-X6JH8W63C4", // Optional
+      // firebaseApiKey: "AIzaSyBkatT5A9CYEE8cBkgXwS9pUCGVvC3AMpM", // REMOVED - Leaked key from old project
+      // Correct API Key should be handled securely (e.g., via google-services.json or environment variables)
+      firebaseAuthDomain: "nodal-alcove-457508-h6.firebaseapp.com",
+      firebaseProjectId: "nodal-alcove-457508-h6",
+      firebaseStorageBucket: "nodal-alcove-457508-h6.firebasestorage.app",
+      firebaseMessagingSenderId: "148163978225",
+      firebaseAppId: "1:148163978225:web:4682f163f69464feff9a50",
+      firebaseMeasurementId: "G-NNFYSN7NEL", // Optional
       eas: {
         projectId: "a950e47f-37aa-4f92-b910-e060a64116a2"
       }

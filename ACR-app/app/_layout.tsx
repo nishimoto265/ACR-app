@@ -1,27 +1,50 @@
 // app/_layout.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { AuthProvider, useAuth } from '../hooks/useAuth'; 
+import { Slot, useRouter, useSegments, Stack } from 'expo-router'; 
+import LoadingScreen from '../components/LoadingScreen'; 
 
 // Create a client
 const queryClient = new QueryClient();
 
+// Component to handle navigation logic based on auth state
+function InitialLayout() {
+  const { user, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return; 
+
+    const inAuthGroup = segments[0] === '(auth)'; 
+
+    if (!user && !inAuthGroup) {
+      router.replace('/(auth)/login'); 
+    } else if (user && inAuthGroup) {
+      router.replace('/(tabs)/home'); 
+    }
+  }, [user, isLoading, segments, router]);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  // Wrap the Slot with a Stack navigator
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Slot renders the active child route based on the URL */}
+      <Slot />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   return (
-    // Provide the client to your App
     <QueryClientProvider client={queryClient}>
-      <Stack>
-        {/* アプリケーションの他のスクリーン設定 */}
-        <Stack.Screen name="index" options={{ title: '録音一覧' }} />
-        {/* 詳細画面のルートを追加 */}
-        <Stack.Screen name="recording/[id]" options={{ title: '録音詳細' }} />
-        {/* 不要なコメントアウトを削除 */}
-        {/* <Stack.Screen name="auth/login" options={{ title: 'Login' }} /> */}
-        {/* <Stack.Screen name="features/recordings/[id]" options={{ title: 'Recording Detail' }} /> */}
-        {/* <Stack.Screen name="features/auth/signup" options={{ title: 'Sign Up' }} /> */}
-        {/* <Stack.Screen name="features/auth/login" options={{ title: 'Login' }} */}
-
-      </Stack>
+      <AuthProvider>
+        <InitialLayout />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,6 @@
-import HomeScreen from '../features/recordings/HomeScreen';
-import React from 'react';
+import { Redirect } from 'expo-router';
 
-export default function Index() {
-  return <HomeScreen />;
+// Redirect from the root route to the home tab
+export default function RootIndex() {
+  return <Redirect href="/(tabs)/home" />;
 }

@@ -1,6 +1,14 @@
 {
   "extends": [
-    "next/core-web-vitals",
-    "next/typescript"
-  ]
+    "expo"
+  ],
+  // Explicitly define the parser and its options
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest", // Use the latest ECMAScript features
+    "sourceType": "module",  // Allow using import/export statements
+    "ecmaFeatures": {
+      "jsx": true // Enable JSX parsing
+    }
+  }
 }

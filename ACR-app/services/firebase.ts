@@ -1,7 +1,9 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Consolidated Firebase config for nodal-alcove-457508-h6
 const firebaseConfig = {
@@ -24,8 +26,13 @@ if (!getApps().length) {
   app = getApp(); // Get the default app if already initialized
 }
 
-// Export all services using the single, default app instance
-export const auth = getAuth(app);
+// Initialize Auth with persistence based on platform
+export const auth = initializeAuth(app, {
+  // Apply persistence only on native platforms (iOS, Android)
+  ...(Platform.OS !== 'web' ? { persistence: getReactNativePersistence(ReactNativeAsyncStorage) } : {}),
+});
+
+// Export other services using the single, default app instance
 export const storage = getStorage(app);
 export const db = getFirestore(app);
 

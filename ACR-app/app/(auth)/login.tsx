@@ -3,35 +3,26 @@
 import { useState } from "react"
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
 import { Button, TextInput, Text, HelperText } from "react-native-paper"
-import type { NativeStackScreenProps } from "@react-navigation/native-stack"
-import type { AuthStackParamList } from "../../navigation/AuthNavigator"
-import { useAuth } from "../../hooks/useAuth"
+// Remove navigation types
+// import type { NativeStackScreenProps } from "@react-navigation/native-stack"
+// import type { AuthStackParamList } from "../../navigation/AuthNavigator"
+import { useRouter } from 'expo-router'; // Import useRouter
+import { useAuth } from "../../hooks/useAuth" // Corrected import path for useAuth
 
-type Props = NativeStackScreenProps<AuthStackParamList, "Signup">
-
-export default function SignupScreen({ navigation }: Props) {
+// Remove Props type and navigation prop
+export default function LoginScreen() { 
+  const router = useRouter(); // Initialize router
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [secureTextEntry, setSecureTextEntry] = useState(true)
 
-  const { signUp } = useAuth()
+  const { signIn, signInAnonymously } = useAuth()
 
-  const handleSignup = async () => {
-    if (!email || !password || !confirmPassword) {
-      setError("すべての項目を入力してください")
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError("パスワードが一致しません")
-      return
-    }
-
-    if (password.length < 6) {
-      setError("パスワードは6文字以上で入力してください")
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError("メールアドレスとパスワードを入力してください")
       return
     }
 
@@ -39,9 +30,25 @@ export default function SignupScreen({ navigation }: Props) {
     setError(null)
 
     try {
-      await signUp(email, password)
+      await signIn(email, password)
+      // No explicit navigation needed here, _layout.tsx handles redirection
     } catch (err) {
-      setError("アカウント作成に失敗しました。別のメールアドレスを試してください。")
+      setError("ログインに失敗しました。認証情報を確認してください。")
+      console.error(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAnonymousLogin = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await signInAnonymously()
+      // No explicit navigation needed here, _layout.tsx handles redirection
+    } catch (err) {
+      setError("匿名ログインに失敗しました。")
       console.error(err)
     } finally {
       setIsLoading(false)
@@ -56,7 +63,7 @@ export default function SignupScreen({ navigation }: Props) {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>アカウント作成</Text>
+          <Text style={styles.title}>通話録音ビューア</Text>
 
           {error && (
             <HelperText type="error" visible={!!error}>
@@ -72,6 +79,7 @@ export default function SignupScreen({ navigation }: Props) {
             keyboardType="email-address"
             style={styles.input}
             disabled={isLoading}
+            testID="email-input"
           />
 
           <TextInput
@@ -81,6 +89,7 @@ export default function SignupScreen({ navigation }: Props) {
             secureTextEntry={secureTextEntry}
             style={styles.input}
             disabled={isLoading}
+            testID="password-input"
             right={
               <TextInput.Icon
                 icon={secureTextEntry ? "eye" : "eye-off"}
@@ -89,27 +98,21 @@ export default function SignupScreen({ navigation }: Props) {
             }
           />
 
-          <TextInput
-            label="パスワード（確認）"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={secureTextEntry}
-            style={styles.input}
-            disabled={isLoading}
-          />
+          <Button mode="contained" onPress={handleLogin} loading={isLoading} disabled={isLoading} style={styles.button}>
+            ログイン
+          </Button>
 
           <Button
-            mode="contained"
-            onPress={handleSignup}
-            loading={isLoading}
+            mode="outlined"
+            onPress={() => router.push('/(auth)/signup')} // Use router.push
             disabled={isLoading}
             style={styles.button}
           >
             アカウント作成
           </Button>
 
-          <Button mode="text" onPress={() => navigation.navigate("Login")} disabled={isLoading} style={styles.button}>
-            ログイン画面に戻る
+          <Button mode="text" onPress={handleAnonymousLogin} disabled={isLoading} style={styles.button}>
+            匿名でログイン
           </Button>
         </View>
       </ScrollView>
