@@ -45,7 +45,7 @@ export default function HomeScreen() {
     <Card style={styles.card} onPress={() => handleRecordingPress(item.id)}>
       <Card.Content>
         <Text style={styles.phoneNumber}>{item.phoneNumber}</Text>
-        <Text style={styles.date}>{formatDate(item.recordedAt)}</Text>
+        <Text style={styles.date}>{formatDate(item.createdAt.toDate())}</Text>
         {item.summary && (
           <>
             <Divider style={styles.divider} />

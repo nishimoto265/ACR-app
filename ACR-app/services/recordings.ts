@@ -72,7 +72,8 @@ const convertRecording = (doc: QueryDocumentSnapshot<DocumentData>): Recording |
 // 録音一覧を取得 (変換失敗したものを除外)
 export const getRecordings = async (limitCount = 20): Promise<Recording[]> => {
   try {
-    const q = query(collection(db, "recordings"), orderBy("recordedAt", "desc"), limit(limitCount))
+    // Sort by createdAt instead of recordedAt
+    const q = query(collection(db, "recordings"), orderBy("createdAt", "desc"), limit(limitCount))
 
     const querySnapshot = await getDocs(q)
     // Map documents, filter out nulls (conversion failures)

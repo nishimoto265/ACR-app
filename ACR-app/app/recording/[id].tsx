@@ -1,18 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function RecordingDetailScreen() {
-  // Get the recording ID from the route parameters
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
       {/* Configure the header dynamically */}
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
-          title: `録音詳細: ${id}` // Display ID in the title for now
+          title: `録音詳細: ${id}`,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginLeft: 10 }}
+            >
+              <MaterialIcons
+                name="arrow-back"
+                size={24}
+                color="#000000"
+              />
+            </TouchableOpacity>
+          ),
         }}
       />
       <Text style={styles.title}>録音詳細画面</Text>

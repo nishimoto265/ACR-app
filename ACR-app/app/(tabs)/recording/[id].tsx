@@ -250,7 +250,8 @@ export default function RecordingDetailScreen() {
   return (
     <ScrollView style={styles.container}>
       <Card style={styles.card}>
-        <Card.Title title={recording.phoneNumber || "不明な番号"} subtitle={formatDate(recording.recordedAt)} />
+        {/* Use createdAt for the subtitle */}
+        <Card.Title title={recording.phoneNumber || "不明な番号"} subtitle={formatDate(recording.createdAt.toDate())} />
         <Card.Content>
           {/* Audio Player Section */}
           {playerState.isLoadingAudio ? (

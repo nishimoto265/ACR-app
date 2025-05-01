@@ -6,7 +6,9 @@
   "scripts": {
     "start": "expo start",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts,.tsx",
-    "test": "jest"
+    "test": "jest",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@babel/runtime": "^7.27.0",
