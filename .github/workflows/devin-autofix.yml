@@ -1,0 +1,53 @@
+name: Devin Issue Fixer
+
+on:
+  issues:
+    types: [opened] # Issueがオープンされた時のみトリガー
+
+permissions:
+  issues: write # Issueへのコメント書き込みのため
+  contents: read # リポジトリのコードをDevinが参照する場合に備えて
+
+jobs:
+  devin_issue_fix:
+    name: Trigger Devin to Fix Issue
+    runs-on: ubuntu-latest
+    # CI失敗によって作成されたIssueの場合のみ実行する (オプション)
+    if: contains(github.event.issue.labels.*.name, 'ci-failure') 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trigger Devin to fix issue
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }} # APIキーを環境変数として渡す
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Devinがリポジトリにアクセスするために必要であれば
+        run: |
+          echo "Attempting to trigger Devin for issue #${{ github.event.issue.number }} in repository ${{ github.repository }}"
+          
+          # APIエンドポイントやリクエストボディはDevinの実際の仕様に合わせてください
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST https://api.devin.ai/trigger \
+            -H "Authorization: Bearer $DEVIN_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+                  "repository_url": "https://github.com/${{ github.repository }}",
+                  "issue_number": ${{ github.event.issue.number }},
+                  "branch": "${{ github.event.issue.pull_request && github.event.issue.pull_request.head.ref || github.ref_name }}" 
+                }')
+
+          echo "Devin API response code: $response_code"
+
+          if [ "$response_code" -ne 200 ] && [ "$response_code" -ne 201 ] && [ "$response_code" -ne 202 ]; then
+            echo "::error::Failed to trigger Devin. API responded with $response_code"
+            
+            #失敗時にIssueにコメントを残す (オプション)
+            gh issue comment ${{ github.event.issue.number }} \
+              --body "Failed to automatically trigger Devin for this issue (API Response: $response_code). Please investigate."
+            exit 1
+          fi
+          
+          echo "Devin triggered successfully for issue #${{ github.event.issue.number }}"
+          
+          #成功時にIssueにコメントを残す (オプション)
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "Devin has been triggered to attempt a fix for this issue. Monitor Devin's progress." 
