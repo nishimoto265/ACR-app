@@ -16,6 +16,7 @@ ACRは、Cloud Run＋Firestore＋Firebase Storageに保存された通話録音�
 
 ### 通話録音確認画面
 電話をすると自動的にデータが処理され追加されていきます。録音データ取り込みを押すことで、取得できていなかったデータも取得できます。
+
 <img src="./config/check_data.png" width="300">
 
 ### ダークモード画面
