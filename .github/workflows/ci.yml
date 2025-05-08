@@ -6,6 +6,11 @@ on:
   push:
     branches: [ main ] # mainブランチへのpush時に実行
 
+# Issue作成のためのパーミッション
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   lint:
     name: Lint Check
@@ -27,6 +32,16 @@ jobs:
         # package.json の scripts に lint コマンド (例: "lint": "eslint . && prettier --check .") が定義されていることを想定
         run: npm run lint
 
+      - name: Create Issue on Lint Failure
+        if: failure() # ジョブが失敗した場合のみ実行
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: .github/issue-templates/ci-failure-template.md
+          update_existing: true
+          assignees: ${{ github.actor }}
+
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -47,3 +62,13 @@ jobs:
       - name: Run unit tests
         # package.json の scripts に test コマンド (例: "test": "jest") が定義されていることを想定
         run: npm test
+
+      - name: Create Issue on Test Failure
+        if: failure() # ジョブが失敗した場合のみ実行
+        uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: .github/issue-templates/ci-failure-template.md
+          update_existing: true
+          assignees: ${{ github.actor }}
