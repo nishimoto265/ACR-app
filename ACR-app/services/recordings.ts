@@ -15,6 +15,25 @@ import { db } from "./firebase"
 // Import Timestamp class for instanceof check
 import { Timestamp as FirebaseTimestamp } from "firebase/firestore"
 
+/**
+ * Firestore セキュリティルール（参考）
+ * 
+ * ```
+ * rules_version = '2';
+ * service cloud.firestore {
+ *   match /databases/{database}/documents {
+ *     match /recordings/{recordingId} {
+ *       // 認証済みユーザーのみ、読み取りアクセスを許可
+ *       allow read: if request.auth != null;
+ *       
+ *       // 書き込みはCloud Functionsのみ許可
+ *       allow write: if false;
+ *     }
+ *   }
+ * }
+ * ```
+ */
+
 export interface Recording {
   id: string
   phoneNumber: string

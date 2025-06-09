@@ -1,14 +1,16 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useContext } from "react"
 import { View, ScrollView, StyleSheet } from "react-native"
 import Slider from '@react-native-community/slider';
-import { Text, Card, Divider, ActivityIndicator, IconButton } from "react-native-paper"
+import { Text, Card, Divider, ActivityIndicator, IconButton, useTheme as usePaperTheme } from "react-native-paper"
 import { Audio, AVPlaybackStatus } from "expo-av"
 import { useLocalSearchParams, useFocusEffect } from "expo-router" // Correct hook for Expo Router
 // Adjust import paths due to moving the file
 import { useRecording } from "../../../hooks/useRecordings" 
 import { formatDate, formatDuration } from "../../../utils/dateFormatter" 
+import { ThemeContext } from "../../_layout"; // Import ThemeContext from root layout
+// import { useContext } from "react"; // Import useContext
 
 // Removed navigation-related types and props
 
@@ -33,6 +35,25 @@ const initialPlayerState: PlayerState = {
 export default function RecordingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>(); // Get id from URL params
   const recordingId = id; 
+  
+  // テーマコンテキストを使用
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme;
+  const isDarkMode = themeContext?.isDarkMode || false;
+  
+  // Use hardcoded colors instead of theme context to avoid import issues
+  const colors = {
+    primary: "#03A9F4",
+    onPrimary: "#FFFFFF",
+    secondary: "#03A9F4",
+    onSecondary: "#FFFFFF",
+    background: theme?.colors.background || "#FFFFFF",
+    surface: theme?.colors.surface || "#FFFFFF",
+    onSurface: isDarkMode ? "#FFFFFF" : "#000000",
+    outline: isDarkMode ? "#FFFFFF" : "#BDBDBD"
+  };
+ 
+  const paperTheme = usePaperTheme(); // Use paper's theme hook if needed for specific defaults
 
   // --- Hooks called unconditionally at the top level --- 
   const soundRef = useRef<Audio.Sound | null>(null)
@@ -223,7 +244,7 @@ export default function RecordingDetailScreen() {
   if (!recordingId) {
       // This path should technically not be reached if routing works correctly
       return (
-          <View style={styles.errorContainer}>
+          <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
               <Text style={styles.errorText}>録音IDが見つかりません。</Text>
           </View>
       );
@@ -231,7 +252,7 @@ export default function RecordingDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" />
         <Text style={styles.statusText}>録音データを読み込み中...</Text>
       </View>
@@ -248,16 +269,22 @@ export default function RecordingDetailScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <Card style={styles.card}>
         {/* Use createdAt for the subtitle */}
-        <Card.Title title={recording.phoneNumber || "不明な番号"} subtitle={formatDate(recording.createdAt.toDate())} />
+        <Card.Title 
+          title={recording.phoneNumber || "不明な番号"} 
+          subtitle={formatDate(recording.createdAt.toDate())} 
+          titleStyle={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}
+          subtitleStyle={{ color: isDarkMode ? "#BBBBBB" : "#757575" }}
+          theme={{ colors: { surface: colors.surface } }}
+        />
         <Card.Content>
           {/* Audio Player Section */}
           {playerState.isLoadingAudio ? (
             <View style={styles.playerContainer}>
-              <ActivityIndicator />
-              <Text style={styles.statusText}>音声ファイルを読み込み中...</Text>
+              <ActivityIndicator size="large" color="#03A9F4" />
+              <Text style={styles.statusText} theme={{ colors: { text: isDarkMode ? "#BBBBBB" : "#757575" } }}>音声ファイルを読み込み中...</Text>
             </View>
           ) : playerState.audioError ? (
              <View style={styles.playerContainer}>
@@ -272,24 +299,37 @@ export default function RecordingDetailScreen() {
                  maximumValue={playerState.duration > 0 ? playerState.duration : 1} // Prevent NaN/0 max value
                  value={playerState.position}
                  onSlidingComplete={handleSlidingComplete}
-                 minimumTrackTintColor="#2196F3"
+                 minimumTrackTintColor="#000000"
                  maximumTrackTintColor="#BDBDBD"
-                 thumbTintColor="#2196F3"
+                 thumbTintColor="#000000"
                  disabled={!playerState.playbackStatus?.isLoaded || playerState.duration <= 0} // Disable if not loaded or no duration
                />
                <View style={styles.timeContainer}>
-                 <Text style={styles.timeText}>{formatDuration(playerState.position)}</Text>
-                 <Text style={styles.timeText}>{formatDuration(playerState.duration)}</Text>
+                 <Text style={styles.timeText} theme={{ colors: { text: isDarkMode ? "#BBBBBB" : "#757575" } }}>{formatDuration(playerState.position)}</Text>
+                 <Text style={styles.timeText} theme={{ colors: { text: isDarkMode ? "#BBBBBB" : "#757575" } }}>{formatDuration(playerState.duration)}</Text>
                </View>
               <View style={styles.controlsContainer}>
-                <IconButton icon="rewind-10" size={30} onPress={seekBackward} disabled={!playerState.playbackStatus?.isLoaded} />
                 <IconButton
-                  icon={playerState.isPlaying ? "pause-circle-outline" : "play-circle-outline"}
+                  icon="rewind-10"
+                  size={30}
+                  iconColor="#000000"
+                  onPress={seekBackward}
+                  disabled={!playerState.playbackStatus?.isLoaded}
+                />
+                <IconButton
+                  icon={playerState.isPlaying ? "pause" : "play"}
                   size={40}
+                  iconColor="#000000"
                   onPress={togglePlayback}
                   disabled={!playerState.playbackStatus?.isLoaded}
                 />
-                <IconButton icon="fast-forward-10" size={30} onPress={seekForward} disabled={!playerState.playbackStatus?.isLoaded} />
+                <IconButton
+                  icon="fast-forward-10"
+                  size={30}
+                  iconColor="#000000"
+                  onPress={seekForward}
+                  disabled={!playerState.playbackStatus?.isLoaded}
+                />
               </View>
             </View>
           )}
@@ -299,12 +339,12 @@ export default function RecordingDetailScreen() {
           {/* Summary Section */}
           {recording.summary ? (
             <View>
-              <Text style={styles.sectionTitle}>概要</Text>
-              <Text style={styles.summaryText}>{recording.summary}</Text>
+              <Text style={styles.sectionTitle} theme={{ colors: { text: isDarkMode ? "#FFFFFF" : "#000000" } }}>概要</Text>
+              <Text style={styles.summaryText} theme={{ colors: { text: isDarkMode ? "#DDDDDD" : "#424242" } }}>{recording.summary}</Text>
               <Divider style={styles.divider} />
             </View>
           ) : (
-             <Text style={styles.statusText}>概要は利用できません。</Text>
+             <Text style={styles.statusText} theme={{ colors: { text: isDarkMode ? "#BBBBBB" : "#757575" } }}>概要は利用できません。</Text>
           )}
 
           {/* Transcript Section (Optional) */}
@@ -319,7 +359,6 @@ export default function RecordingDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
   },
   card: {
     margin: 10,

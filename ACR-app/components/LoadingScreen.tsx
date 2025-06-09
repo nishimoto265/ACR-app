@@ -1,15 +1,16 @@
 import { View, StyleSheet } from "react-native"
-import { ActivityIndicator, Text } from "react-native-paper"
+import { ActivityIndicator, Text, useTheme } from "react-native-paper"
 
 type Props = {
   message?: string
 }
 
 export default function LoadingScreen({ message = "ロード中..." }: Props) {
+  const theme = useTheme();
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#2196F3" />
-      <Text style={styles.text}>{message}</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ActivityIndicator size="large" color="#03A9F4" />
+      <Text style={styles.text} theme={{ colors: { text: theme.dark ? "#FFFFFF" : "#000000" } }}>{message}</Text>
     </View>
   )
 }
@@ -19,7 +20,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
   },
   text: {
     marginTop: 16,

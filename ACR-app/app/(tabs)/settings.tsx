@@ -1,17 +1,38 @@
 "use client"
 
-import { useState } from "react"
-import { View, StyleSheet, Alert } from "react-native"
-import { List, Divider, Switch, Text } from "react-native-paper"
+import { useState, useEffect, useContext } from "react"
+import { View, StyleSheet, Alert, ToastAndroid, Platform } from "react-native"
+import { List, Divider, Text, SegmentedButtons } from "react-native-paper"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import Constants from "expo-constants"
 // Corrected import path for useAuth
 import { useAuth } from "../../hooks/useAuth" 
+import { ThemeContext } from "../_layout" // リアルタイムテーマ更新のためにThemeContextをインポート
 
 export default function SettingsScreen() {
   const { signOut } = useAuth()
   const [isClearing, setIsClearing] = useState(false)
-  const [highContrast, setHighContrast] = useState(false)
+  // ThemeContextからテーマ情報を取得
+  const themeContext = useContext(ThemeContext);
+  const themeMode = themeContext?.themeMode || 'light';
+  const theme = themeContext?.theme;
+  const contextSetThemeMode = themeContext?.setThemeMode || (() => {});
+  
+  // テーマ変更時に通知を表示する関数
+  const setThemeMode = (mode: 'light' | 'dark') => {
+    contextSetThemeMode(mode);
+    
+    // テーマが変更されたことをユーザーに通知
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(
+        `${mode === 'light' ? 'ライト' : 'ダーク'}モードに変更しました`, 
+        ToastAndroid.SHORT
+      );
+    } else {
+      // iOSの場合はAlertを使用（実際のアプリではもっと洗練された通知方法を使用することをお勧めします）
+      Alert.alert('テーマを変更しました', `${mode === 'light' ? 'ライト' : 'ダーク'}モードに変更しました`);
+    }
+  };
 
   // Get app version from Expo constants
   const appVersion = Constants.expoConfig?.version || "1.0.0"
@@ -58,24 +79,26 @@ export default function SettingsScreen() {
     ])
   }
 
-  // Toggle high contrast mode (implementation detail omitted)
-  const toggleHighContrast = () => {
-    setHighContrast(!highContrast)
-    // In a real app, save this setting (e.g., in AsyncStorage or user profile)
-    // and apply the theme/style changes throughout the app.
-  }
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme?.colors.background }]}>
       <List.Section>
         <List.Subheader>アプリ設定</List.Subheader>
 
-        {/* High Contrast Toggle */}
+        {/* Theme Selection */}
         <List.Item
-          title="ハイコントラストモード"
-          description="テキストと背景のコントラストを高くします"
-          left={(props) => <List.Icon {...props} icon="contrast" />}
-          right={() => <Switch value={highContrast} onValueChange={toggleHighContrast} />}
+          title="表示テーマ"
+          description="アプリの表示モードを選択します"
+          left={(props) => <List.Icon {...props} icon="brightness-6" color="#03A9F4" />}
+        />
+        <SegmentedButtons
+          style={styles.segmentedButton}
+          value={themeMode}
+          onValueChange={(value) => setThemeMode(value as 'light' | 'dark')}
+          theme={{ colors: { primary: "#03A9F4", outline: "#03A9F4" } }}
+          buttons={[
+            { value: 'light', label: 'ライト', icon: 'white-balance-sunny' },
+            { value: 'dark', label: 'ダーク', icon: 'weather-night' },
+          ]}
         />
         <Divider />
 
@@ -83,17 +106,17 @@ export default function SettingsScreen() {
         <List.Item
           title="キャッシュを削除"
           description="オフラインキャッシュを削除します"
-          left={(props) => <List.Icon {...props} icon="cached" />}
+          left={(props) => <List.Icon {...props} icon="cached" color="#03A9F4" />}
           onPress={handleClearCache}
           disabled={isClearing} // Disable button while clearing
         />
         <Divider />
 
-        {/* Logout Button */}
+        {/* Logout Button (moved here for structure) */}
         <List.Item
           title="ログアウト"
           description="アプリからログアウトします"
-          left={(props) => <List.Icon {...props} icon="logout" />}
+          left={(props) => <List.Icon {...props} icon="logout" color="#03A9F4" />}
           onPress={handleLogout}
         />
       </List.Section>
@@ -110,7 +133,11 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    // backgroundColor is now handled by PaperProvider theme
+  },
+  segmentedButton: {
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   versionContainer: {
     padding: 16,

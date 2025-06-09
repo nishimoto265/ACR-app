@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
 import { Button, TextInput, Text, HelperText } from "react-native-paper"
 // Remove navigation types
@@ -8,10 +8,15 @@ import { Button, TextInput, Text, HelperText } from "react-native-paper"
 // import type { AuthStackParamList } from "../../navigation/AuthNavigator"
 import { useRouter } from 'expo-router'; // Import useRouter
 import { useAuth } from "../../hooks/useAuth" // Corrected import path for useAuth
+import { ThemeContext } from "../_layout" // テーマコンテキストをインポート
 
 // Remove Props type and navigation prop
 export default function LoginScreen() { 
   const router = useRouter(); // Initialize router
+  const themeContext = useContext(ThemeContext);
+  const theme = themeContext?.theme;
+  const isDarkMode = themeContext?.isDarkMode || false;
+  
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -57,16 +62,16 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme?.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>通話録音ビューア</Text>
+          <Text style={[styles.title, { color: isDarkMode ? "#FFFFFF" : "#000000" }]}>通話録音ビューア</Text>
 
           {error && (
-            <HelperText type="error" visible={!!error}>
+            <HelperText type="error" visible={!!error} theme={{ colors: { error: "#B00020" } }}>
               {error}
             </HelperText>
           )}
@@ -80,6 +85,15 @@ export default function LoginScreen() {
             style={styles.input}
             disabled={isLoading}
             testID="email-input"
+            theme={{ 
+              colors: { 
+                primary: "#03A9F4", 
+                background: isDarkMode ? "#333333" : "#FFFFFF",
+                text: isDarkMode ? "#FFFFFF" : "#000000",
+                placeholder: isDarkMode ? "#BBBBBB" : "#757575",
+                onSurfaceVariant: isDarkMode ? "#BBBBBB" : "#757575"
+              } 
+            }}
           />
 
           <TextInput
@@ -90,10 +104,20 @@ export default function LoginScreen() {
             style={styles.input}
             disabled={isLoading}
             testID="password-input"
+            theme={{ 
+              colors: { 
+                primary: "#03A9F4", 
+                background: isDarkMode ? "#333333" : "#FFFFFF",
+                text: isDarkMode ? "#FFFFFF" : "#000000",
+                placeholder: isDarkMode ? "#BBBBBB" : "#757575",
+                onSurfaceVariant: isDarkMode ? "#BBBBBB" : "#757575"
+              } 
+            }}
             right={
               <TextInput.Icon
                 icon={secureTextEntry ? "eye" : "eye-off"}
                 onPress={() => setSecureTextEntry(!secureTextEntry)}
+                color={isDarkMode ? "#FFFFFF" : "#000000"}
               />
             }
           />
@@ -107,6 +131,12 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/signup')} // Use router.push
             disabled={isLoading}
             style={styles.button}
+            theme={{ 
+              colors: { 
+                primary: "#03A9F4",
+                outline: isDarkMode ? "#FFFFFF" : "#03A9F4"
+              } 
+            }}
           >
             アカウント作成
           </Button>
@@ -123,7 +153,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
   },
   scrollContent: {
     flexGrow: 1,

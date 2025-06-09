@@ -11,8 +11,9 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: true, // Show headers for tab screens
-          // You can customize tab bar appearance here
-          // tabBarActiveTintColor: 'blue', 
+          // 明示的に色を設定
+          tabBarActiveTintColor: '#03A9F4', // 水色に変更
+          tabBarInactiveTintColor: '#757575',
         }}>
         <Tabs.Screen
           name="home" // This corresponds to app/(tabs)/home.tsx
@@ -30,6 +31,16 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="settings-outline" size={size} color={color} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="recording/[id]" // This corresponds to app/(tabs)/recording/[id].tsx
+          options={{
+            title: '録音詳細', // Or a more appropriate title
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="mic-outline" size={size} color={color} /> // Example: mic icon
+            ),
+            href: null, // Hide this tab from the tab bar
           }}
         />
         {/* Add other tabs here if needed */}
